@@ -1,0 +1,82 @@
+import { BadgeCheck, BellPlus, ExternalLink, Star } from "lucide-react";
+import type { GameSummary } from "@/types/game";
+import { formatCompactNumber, formatPrice } from "@/lib/format";
+import { getBestPrice } from "@/lib/game-score";
+
+type GameCardProps = {
+  game: GameSummary;
+  actionLabel?: string;
+};
+
+export function GameCard({ game, actionLabel = "관심 목록 추가" }: GameCardProps) {
+  const bestPrice = getBestPrice(game);
+  const isUpcoming = game.releaseStatus === "upcoming";
+
+  return (
+    <article className="game-card">
+      <div className="game-card__image">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={game.imageUrl} alt="" loading="lazy" />
+        <span className="game-card__badge">
+          <Star size={14} aria-hidden="true" />
+          {game.steamReviewCount
+            ? `${formatCompactNumber(game.steamReviewCount)} / ${game.steamPositiveRatio}%`
+            : isUpcoming
+              ? "출시 예정"
+              : "리뷰 수집 중"}
+        </span>
+      </div>
+
+      <div className="game-card__body">
+        <div className="game-card__title-row">
+          <div>
+            <h3>{game.title}</h3>
+            <div className="tag-row" aria-label="태그">
+              {game.tags.slice(0, 3).map((tag) => (
+                <span className="tag" key={tag}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+          {bestPrice?.isHistoricalLow ? (
+            <span className="discount discount--hot">
+              <BadgeCheck size={13} aria-hidden="true" /> 최저가
+            </span>
+          ) : null}
+        </div>
+
+        <div className="store-list">
+          {game.prices.map((price) => (
+            <a className="store-price" href={price.url} key={`${game.id}-${price.store}`}>
+              <span className="store-price__store">{price.storeName}</span>
+              <span className="store-price__value">
+                <strong>
+                  {price.currentPriceCents === 0
+                    ? "가격 미정"
+                    : formatPrice(price.currentPriceCents, price.currency)}
+                </strong>
+                {price.discountPercent > 0 ? (
+                  <span>{formatPrice(price.regularPriceCents, price.currency)}</span>
+                ) : null}
+              </span>
+              <span className={price.discountPercent >= 50 ? "discount discount--hot" : "discount"}>
+                -{price.discountPercent}%
+              </span>
+            </a>
+          ))}
+        </div>
+
+        <button className="button button--primary" type="button">
+          <BellPlus size={17} aria-hidden="true" />
+          {actionLabel}
+        </button>
+
+        <a className="button" href={bestPrice?.url ?? "#"}>
+          <ExternalLink size={17} aria-hidden="true" />
+          최저가 스토어 열기
+        </a>
+      </div>
+    </article>
+  );
+}

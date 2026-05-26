@@ -1,0 +1,29 @@
+import { defineConfig, devices } from "@playwright/test";
+
+export default defineConfig({
+  testDir: "./tests/e2e",
+  fullyParallel: true,
+  reporter: "html",
+  use: {
+    baseURL: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3100",
+    trace: "on-first-retry"
+  },
+  projects: [
+    {
+      name: "desktop-chrome",
+      use: { ...devices["Desktop Chrome"] }
+    },
+    {
+      name: "mobile-webview",
+      use: {
+        ...devices["Pixel 7"],
+        viewport: { width: 393, height: 852 }
+      }
+    }
+  ],
+  webServer: {
+    command: "npm run dev",
+    url: "http://localhost:3100",
+    reuseExistingServer: !process.env.CI
+  }
+});
