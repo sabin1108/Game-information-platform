@@ -1,4 +1,6 @@
-# Game Deal Watch
+# Game-information-platform
+
+게임 할인 및 신작 게임, 찜한 게임의 정보를 확인하고 직접 스토어로 연결해주는 사이트입니다.
 
 Steam과 Epic Games Store의 할인, 신작, 출시 예정 게임을 한 화면에서 확인하고 사용자별 관심 목록을 관리하는 Next.js 앱입니다.
 
