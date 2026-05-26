@@ -15,12 +15,8 @@ playwright-report
 test-results
 *.tsbuildinfo
 
-# env
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# env - keep all environment files local only
+.env*
 
 # vercel
 .vercel
