@@ -1,3 +1,4 @@
+import React from "react";
 import { BadgeCheck, BellPlus, ExternalLink, Star } from "lucide-react";
 import type { GameSummary } from "@/types/game";
 import { formatCompactNumber, formatPrice } from "@/lib/format";

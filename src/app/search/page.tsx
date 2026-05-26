@@ -10,7 +10,7 @@ type SearchPageProps = {
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const { q = "" } = await searchParams;
-  const { games: results, source, warning } = await searchGameFeed(q);
+  const { games: results, source, warning, cacheStatus } = await searchGameFeed(q);
 
   return (
     <>
@@ -19,7 +19,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         <section className="section-header">
           <div>
             <h1>{q ? `"${q}" 검색 결과` : "게임 검색"}</h1>
-            <p>{source.toUpperCase()} 기준 검색 결과입니다.</p>
+            <p>
+              {source.toUpperCase()} 기준 검색 결과
+              {cacheStatus ? ` · CACHE ${cacheStatus.toUpperCase()}` : ""}
+            </p>
           </div>
         </section>
 

@@ -14,6 +14,8 @@ export type StorePrice = {
   endsAt?: string;
 };
 
+export type StoreProduct = StorePrice;
+
 export type GameSummary = {
   id: string;
   title: string;

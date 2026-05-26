@@ -1,33 +1,28 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { isItadConfigured } from "@/lib/env";
-import { searchItadGames } from "@/lib/itad";
-import { searchMockGames } from "@/lib/mock-data";
+import { searchGames } from "@/lib/search";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get("q") ?? "";
+  const country = request.nextUrl.searchParams.get("country") ?? "KR";
+  const limit = Number(request.nextUrl.searchParams.get("limit") ?? "20");
+  const result = await searchGames(query, { country, limit });
 
-  if (query.trim() && isItadConfigured()) {
-    try {
-      const data = await searchItadGames(query.trim());
-
-      return NextResponse.json({
-        source: "itad",
-        query,
-        data
-      });
-    } catch (error) {
-      return NextResponse.json({
-        source: "mock",
-        query,
-        warning: error instanceof Error ? error.message : "ITAD request failed.",
-        data: searchMockGames(query)
-      });
+  return NextResponse.json(
+    {
+      source: result.source,
+      query: result.query,
+      normalized: result.normalized,
+      cache: result.cache,
+      warning: result.warning,
+      data: result.games
+    },
+    {
+      headers: {
+        "Cache-Control": "no-store",
+        "X-Search-Cache": result.cache.status
+      }
     }
-  }
-
-  return NextResponse.json({
-    source: "mock",
-    query,
-    data: searchMockGames(query)
-  });
+  );
 }

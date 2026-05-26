@@ -1,14 +1,17 @@
 import "server-only";
 
 import { isItadConfigured } from "@/lib/env";
-import { getItadDeals, getItadPopular, searchItadGames } from "@/lib/itad";
-import { mockGames, searchMockGames } from "@/lib/mock-data";
+import { getItadDeals, getItadPopular } from "@/lib/itad";
+import { mockGames } from "@/lib/mock-data";
+import { searchGames } from "@/lib/search";
+import type { SearchCacheStatus } from "@/lib/search-cache";
 import type { GameSummary } from "@/types/game";
 
 export type GameFeed = {
   source: "itad" | "mock";
   games: GameSummary[];
   warning?: string;
+  cacheStatus?: SearchCacheStatus;
 };
 
 function getWarning(error: unknown) {
@@ -55,19 +58,12 @@ export async function getDealFeed(options: {
 }
 
 export async function searchGameFeed(query: string): Promise<GameFeed> {
-  const trimmed = query.trim();
+  const result = await searchGames(query);
 
-  if (!trimmed || !isItadConfigured()) {
-    return { source: "mock", games: searchMockGames(query) };
-  }
-
-  try {
-    return { source: "itad", games: await searchItadGames(trimmed) };
-  } catch (error) {
-    return {
-      source: "mock",
-      warning: getWarning(error),
-      games: searchMockGames(query)
-    };
-  }
+  return {
+    source: result.source,
+    warning: result.warning,
+    games: result.games,
+    cacheStatus: result.cache.status
+  };
 }

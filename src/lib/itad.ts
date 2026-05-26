@@ -1,49 +1,18 @@
 import "server-only";
 
 import { requireItadEnv } from "@/lib/env";
-import type { GameSummary, StoreCode, StorePrice } from "@/types/game";
+import {
+  getItadGameUrl,
+  normalizeItadGame,
+  type ItadGame,
+  type ItadPriceRow,
+  type ItadStoreOffer
+} from "@/lib/itad-normalizers";
 
 const ITAD_BASE_URL = "https://api.isthereanydeal.com";
-const ITAD_WEB_URL = "https://isthereanydeal.com";
-
-type ItadAssetMap = {
-  boxart?: string;
-  banner145?: string;
-  banner300?: string;
-  banner400?: string;
-  banner600?: string;
-};
-
-type ItadGame = {
-  id: string;
-  slug?: string;
-  title: string;
-  type?: string | null;
-  mature?: boolean;
-  assets?: ItadAssetMap;
-  position?: number;
-  count?: number;
-};
-
-type ItadMoney = {
-  amount?: number;
-  amountInt?: number;
-  currency?: string;
-};
 
 type ItadDeal = ItadGame & {
-  deal?: {
-    shop?: {
-      id?: number;
-      name?: string;
-    };
-    price?: ItadMoney;
-    regular?: ItadMoney;
-    cut?: number;
-    historyLow?: ItadMoney;
-    expiry?: string | null;
-    url?: string;
-  };
+  deal?: ItadStoreOffer;
 };
 
 type ItadDealsResponse = {
@@ -58,69 +27,26 @@ type FetchItadOptions = {
   timeoutMs?: number;
 };
 
-function getGameUrl(game: Pick<ItadGame, "slug" | "id">) {
-  return game.slug ? `${ITAD_WEB_URL}/game/${game.slug}/` : `${ITAD_WEB_URL}/game/${game.id}/`;
-}
-
-function getImageUrl(assets: ItadAssetMap | undefined) {
-  return assets?.banner600 ?? assets?.banner400 ?? assets?.banner300 ?? assets?.boxart ?? "";
-}
-
-function toStoreCode(storeName: string | undefined): StoreCode {
-  const normalized = storeName?.toLowerCase() ?? "";
-
-  if (normalized.includes("steam")) {
-    return "steam";
-  }
-
-  if (normalized.includes("epic")) {
-    return "epic";
-  }
-
-  return "itad";
-}
-
-function toUnknownPrice(game: ItadGame): StorePrice {
-  return {
-    store: "itad",
-    storeName: "IsThereAnyDeal",
-    regularPriceCents: 0,
-    currentPriceCents: 0,
-    currency: "USD",
-    discountPercent: 0,
-    url: getGameUrl(game)
-  };
-}
-
-function toDealPrice(game: ItadDeal): StorePrice {
+function toDealOffer(game: ItadDeal): ItadStoreOffer {
   const storeName = game.deal?.shop?.name ?? "IsThereAnyDeal";
-  const currentPriceCents = game.deal?.price?.amountInt ?? 0;
-  const regularPriceCents = game.deal?.regular?.amountInt ?? currentPriceCents;
-  const historyLowCents = game.deal?.historyLow?.amountInt;
 
   return {
-    store: toStoreCode(storeName),
-    storeName,
-    regularPriceCents,
-    currentPriceCents,
-    currency: game.deal?.price?.currency ?? game.deal?.regular?.currency ?? "USD",
-    discountPercent: game.deal?.cut ?? 0,
-    url: game.deal?.url ?? getGameUrl(game),
-    isHistoricalLow: Boolean(historyLowCents && currentPriceCents && currentPriceCents <= historyLowCents),
-    endsAt: game.deal?.expiry ?? undefined
+    ...game.deal,
+    shop: {
+      ...game.deal?.shop,
+      name: storeName
+    },
+    url: game.deal?.url ?? getItadGameUrl(game)
   };
 }
 
-function toGameSummary(game: ItadGame, prices: StorePrice[]): GameSummary {
+function toDealPriceRow(game: ItadDeal): ItadPriceRow {
   return {
     id: game.id,
-    title: game.title,
-    slug: game.slug ?? game.id,
-    imageUrl: getImageUrl(game.assets),
-    releaseStatus: "unknown",
-    tags: game.type ? [game.type] : ["Game"],
-    steamReviewCount: game.count,
-    prices
+    historyLow: {
+      all: game.deal?.historyLow
+    },
+    deals: [toDealOffer(game)]
   };
 }
 
@@ -167,15 +93,46 @@ async function fetchItadJson<T>(path: string, options: FetchItadOptions = {}) {
   return data as T;
 }
 
-export async function searchItadGames(query: string, results = 20) {
-  const data = await fetchItadJson<ItadGame[]>("/games/search/v1", {
+async function getItadPrices(gameIds: string[], country: string) {
+  if (!gameIds.length) {
+    return new Map<string, ItadPriceRow>();
+  }
+
+  const rows = await fetchItadJson<ItadPriceRow[]>("/games/prices/v3", {
     search: {
-      title: query,
-      results
+      country,
+      deals: false,
+      vouchers: true,
+      capacity: 20
+    },
+    init: {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(gameIds)
     }
   });
 
-  return data.map((game) => toGameSummary(game, [toUnknownPrice(game)]));
+  return new Map(rows.map((row) => [row.id, row]));
+}
+
+export async function searchItadGames(query: string, options: {
+  results?: number;
+  country?: string;
+} = {}) {
+  const data = await fetchItadJson<ItadGame[]>("/games/search/v1", {
+    search: {
+      title: query,
+      results: options.results ?? 20
+    }
+  });
+  const pricesByGame = await getItadPrices(
+    data.map((game) => game.id),
+    options.country ?? "KR"
+  );
+
+  return data.map((game) => normalizeItadGame(game, pricesByGame.get(game.id)));
 }
 
 export async function getItadDeals(options: {
@@ -194,7 +151,7 @@ export async function getItadDeals(options: {
     }
   });
 
-  return (data.list ?? []).map((game) => toGameSummary(game, [toDealPrice(game)]));
+  return (data.list ?? []).map((game) => normalizeItadGame(game, toDealPriceRow(game)));
 }
 
 export async function getItadPopular(limit = 12) {
@@ -204,5 +161,5 @@ export async function getItadPopular(limit = 12) {
     }
   });
 
-  return data.map((game) => toGameSummary(game, [toUnknownPrice(game)]));
+  return data.map((game) => normalizeItadGame(game));
 }
