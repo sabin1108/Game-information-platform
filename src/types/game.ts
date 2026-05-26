@@ -1,4 +1,4 @@
-export type StoreCode = "steam" | "epic";
+export type StoreCode = "steam" | "epic" | "itad";
 
 export type ReleaseStatus = "released" | "upcoming" | "unknown";
 

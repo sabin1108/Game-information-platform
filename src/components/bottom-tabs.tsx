@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Flame, House, Library, Sparkles } from "lucide-react";
 
@@ -21,10 +20,10 @@ export function BottomTabs() {
         const isActive = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
 
         return (
-          <Link key={tab.href} href={tab.href} data-active={isActive}>
+          <a key={tab.href} href={tab.href} data-active={isActive}>
             <Icon size={19} aria-hidden="true" />
             <span>{tab.label}</span>
-          </Link>
+          </a>
         );
       })}
     </nav>

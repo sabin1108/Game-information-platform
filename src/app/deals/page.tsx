@@ -1,10 +1,14 @@
 import { Flame } from "lucide-react";
 import { GameCard } from "@/components/game-card";
 import { TopNav } from "@/components/top-nav";
-import { mockGames } from "@/lib/mock-data";
+import { getDealFeed } from "@/lib/game-feeds";
 
-export default function DealsPage() {
-  const deals = mockGames.filter((game) => game.prices.some((price) => price.discountPercent > 0));
+export default async function DealsPage() {
+  const { games: deals, source, warning } = await getDealFeed({
+    country: "KR",
+    limit: 60,
+    minDiscount: 1
+  });
 
   return (
     <>
@@ -17,9 +21,11 @@ export default function DealsPage() {
           </div>
           <span className="match">
             <Flame size={16} aria-hidden="true" />
-            {deals.length} deals
+            {deals.length} deals · {source.toUpperCase()}
           </span>
         </section>
+
+        {warning ? <div className="notice">{warning}</div> : null}
 
         <section className="game-grid" aria-label="할인 게임">
           {deals.map((game) => (

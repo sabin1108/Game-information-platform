@@ -20,14 +20,19 @@ npm install
 npm run dev
 ```
 
-개발 서버 기본 주소는 `http://localhost:3100`입니다. Supabase 없이도 데모 데이터로 화면을 확인할 수 있습니다. 실제 인증과 DB를 연결하려면 `.env.example`을 기준으로 `.env.local`을 설정하세요.
+개발 서버 기본 주소는 `http://localhost:3000`입니다. Supabase 없이도 데모 데이터로 화면을 확인할 수 있습니다. 실제 인증과 DB를 연결하려면 `.env.example`을 기준으로 `.env.local`을 설정하세요.
 
 ```txt
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 ITAD_API_KEY=
+AUTH_DEV_SKIP_EMAIL_CONFIRMATION=false
 ```
+
+개발 중 Supabase 기본 이메일 발송 한도에 막히면 `.env.local`에서
+`AUTH_DEV_SKIP_EMAIL_CONFIRMATION=true`로 설정할 수 있습니다. 이 옵션은
+`localhost`에서만 service role로 확인 완료 계정을 만들고 즉시 로그인합니다.
 
 ## Docs
 

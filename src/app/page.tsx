@@ -1,32 +1,35 @@
-import Link from "next/link";
 import { Flame, Sparkles, Star, TrendingUp } from "lucide-react";
 import { GameCard } from "@/components/game-card";
 import { TopNav } from "@/components/top-nav";
-import { mockGames } from "@/lib/mock-data";
+import { getDealFeed, getPopularFeed } from "@/lib/game-feeds";
 
-export default function HomePage() {
-  const discountedGames = mockGames.filter((game) =>
+export default async function HomePage() {
+  const [popularFeed, dealFeed] = await Promise.all([
+    getPopularFeed(12),
+    getDealFeed({ country: "KR", limit: 20, minDiscount: 1 })
+  ]);
+  const discountedGames = dealFeed.games.filter((game) =>
     game.prices.some((price) => price.discountPercent > 0)
   );
-  const upcomingGames = mockGames.filter((game) => game.releaseStatus === "upcoming");
+  const upcomingGames = popularFeed.games.filter((game) => game.releaseStatus === "upcoming");
 
   return (
     <>
       <TopNav />
       <main className="container">
         <div className="tabs" aria-label="주요 보기">
-          <Link className="tab" data-active="true" href="/">
+          <a className="tab" data-active="true" href="/">
             <TrendingUp size={16} aria-hidden="true" />
             인기
-          </Link>
-          <Link className="tab" href="/deals">
+          </a>
+          <a className="tab" href="/deals">
             <Flame size={16} aria-hidden="true" />
             할인
-          </Link>
-          <Link className="tab" href="/releases">
+          </a>
+          <a className="tab" href="/releases">
             <Sparkles size={16} aria-hidden="true" />
             신작
-          </Link>
+          </a>
         </div>
 
         <section className="section-header">
@@ -53,15 +56,17 @@ export default function HomePage() {
             <strong>{upcomingGames.length}개</strong>
           </div>
           <div className="stat">
-            <span>정렬 기준</span>
+            <span>데이터 소스</span>
             <strong>
-              <Star size={18} aria-hidden="true" /> 리뷰
+              <Star size={18} aria-hidden="true" /> {popularFeed.source.toUpperCase()}
             </strong>
           </div>
         </section>
 
+        {popularFeed.warning ? <div className="notice">{popularFeed.warning}</div> : null}
+
         <section className="game-grid" aria-label="인기 게임">
-          {mockGames.slice(0, 6).map((game) => (
+          {popularFeed.games.map((game) => (
             <GameCard key={game.id} game={game} />
           ))}
         </section>

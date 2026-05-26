@@ -5,7 +5,7 @@ export default defineConfig({
   fullyParallel: true,
   reporter: "html",
   use: {
-    baseURL: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3100",
+    baseURL: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
     trace: "on-first-retry"
   },
   projects: [
@@ -23,7 +23,7 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run dev",
-    url: "http://localhost:3100",
+    url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI
   }
 });

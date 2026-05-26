@@ -34,7 +34,8 @@ a {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -119,6 +120,10 @@ button {
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+.nav-form {
+  display: contents;
 }
 
 .button {
@@ -252,6 +257,17 @@ button {
   height: 100%;
   display: block;
   object-fit: cover;
+}
+
+.game-card__image-fallback {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  background: linear-gradient(135deg, #202522, #31443c);
+  color: #ffffff;
+  font-size: 1.6rem;
+  font-weight: 900;
 }
 
 .game-card__badge {
@@ -456,10 +472,28 @@ button {
   padding: 0 12px;
 }
 
-.field input:focus {
+.field select {
+  width: 100%;
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--text);
+  padding: 0 12px;
+}
+
+.field input:focus,
+.field select:focus {
   border-color: var(--primary);
   outline: none;
   box-shadow: 0 0 0 3px rgba(23, 107, 91, 0.14);
+}
+
+.field input:disabled,
+.field select:disabled,
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 
 .notice {
@@ -469,6 +503,47 @@ button {
   color: #6d5016;
   padding: 12px;
   line-height: 1.5;
+}
+
+.notice--success {
+  border-color: #b7dbc8;
+  background: #ecf8f1;
+  color: var(--primary-dark);
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.profile-summary {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}
+
+.profile-summary h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.profile-summary p {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
+.profile-avatar {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border-radius: 8px;
+  background: #eef2ef;
+  color: var(--primary-dark);
 }
 
 .bottom-tabs {
@@ -511,7 +586,8 @@ button {
 
   .game-grid,
   .status-strip,
-  .dashboard-grid {
+  .dashboard-grid,
+  .profile-grid {
     grid-template-columns: 1fr;
   }
 
@@ -526,7 +602,7 @@ button {
     width: min(100% - 24px, 1160px);
   }
 
-  .nav-actions .button:not(.button--icon) {
+  .nav-actions .button--ghost {
     display: none;
   }
 

@@ -17,6 +17,7 @@ test-results
 
 # env - keep all environment files local only
 .env*
+!.env.example
 
 # vercel
 .vercel

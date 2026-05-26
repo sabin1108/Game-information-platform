@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { AuthForm } from "@/components/auth-form";
 import { TopNav } from "@/components/top-nav";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -7,11 +6,12 @@ import { signup } from "./actions";
 type SignupPageProps = {
   searchParams: Promise<{
     error?: string;
+    message?: string;
   }>;
 };
 
 export default async function SignupPage({ searchParams }: SignupPageProps) {
-  const { error } = await searchParams;
+  const { error, message } = await searchParams;
 
   return (
     <>
@@ -25,10 +25,19 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
               Supabase 환경변수가 없어 회원가입 제출 시 데모 대시보드로 이동합니다.
             </div>
           ) : null}
-          {error ? <div className="notice">{error}</div> : null}
+          {error ? (
+            <div className="notice" role="alert">
+              {error}
+            </div>
+          ) : null}
+          {message ? (
+            <div className="notice notice--success" role="status">
+              {message}
+            </div>
+          ) : null}
           <AuthForm mode="signup" action={signup} />
           <p>
-            이미 계정이 있나요? <Link href="/login">로그인</Link>
+            이미 계정이 있나요? <a href="/login">로그인</a>
           </p>
         </section>
       </main>

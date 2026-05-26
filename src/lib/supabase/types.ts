@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
@@ -25,6 +27,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
+        Relationships: [];
       };
       watchlist_items: {
         Row: {
@@ -50,7 +53,44 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["watchlist_items"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "watchlist_items_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "watchlist_items_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          }
+        ];
       };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
+    };
+    Enums: {
+      store_code: "steam" | "epic";
+      release_status: "released" | "upcoming" | "unknown";
+      experiment_variant: "control" | "variant_a" | "variant_b";
+    };
+    CompositeTypes: {
+      [_ in never]: never;
     };
   };
 };
+
+export type TypedSupabaseClient = SupabaseClient<
+  Database,
+  "public",
+  "public",
+  Database["public"]
+>;

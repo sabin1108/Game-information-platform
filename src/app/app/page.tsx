@@ -5,11 +5,23 @@ import { TopNav } from "@/components/top-nav";
 import { isSupabaseConfigured } from "@/lib/env";
 import { isTargetMatched } from "@/lib/game-score";
 import { mockWatchlist } from "@/lib/mock-data";
+import { getOrCreateProfile, type Profile } from "@/lib/supabase/profiles";
 import { createClient } from "@/lib/supabase/server";
+
+const demoProfile: Profile = {
+  id: "demo",
+  display_name: "demo",
+  avatar_url: null,
+  preferred_country: "KR",
+  preferred_currency: "KRW",
+  webview_last_seen_at: null,
+  created_at: new Date(0).toISOString(),
+  updated_at: new Date(0).toISOString()
+};
 
 async function getSessionState() {
   if (!isSupabaseConfigured()) {
-    return { isAuthenticated: true, demoMode: true };
+    return { isAuthenticated: true, demoMode: true, profile: demoProfile };
   }
 
   const supabase = await createClient();
@@ -21,7 +33,11 @@ async function getSessionState() {
     redirect("/login");
   }
 
-  return { isAuthenticated: true, demoMode: false };
+  return {
+    isAuthenticated: true,
+    demoMode: false,
+    profile: await getOrCreateProfile(supabase, user)
+  };
 }
 
 export default async function AppDashboardPage() {
@@ -94,15 +110,18 @@ export default async function AppDashboardPage() {
           </section>
 
           <aside className="panel">
-            <h2>다음 구현</h2>
+            <h2>프로필</h2>
             <p>
-              Supabase watchlist CRUD, IsThereAnyDeal 서버 캐시, PostHog A/B 테스트, Sentry와 Web
-              Vitals 측정 순서로 확장합니다.
+              {session.profile.display_name ?? "이름 없음"} 계정은 {session.profile.preferred_country}/
+              {session.profile.preferred_currency} 기준으로 가격을 확인합니다.
             </p>
             <span className="match">
               <TrendingDown size={15} aria-hidden="true" />
               가격 스냅샷 준비됨
             </span>
+            <a className="button" href="/app/profile">
+              프로필 수정
+            </a>
           </aside>
         </div>
 

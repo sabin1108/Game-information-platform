@@ -11,12 +11,19 @@ type GameCardProps = {
 export function GameCard({ game, actionLabel = "관심 목록 추가" }: GameCardProps) {
   const bestPrice = getBestPrice(game);
   const isUpcoming = game.releaseStatus === "upcoming";
+  const hasImage = Boolean(game.imageUrl);
 
   return (
     <article className="game-card">
       <div className="game-card__image">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={game.imageUrl} alt="" loading="lazy" />
+        {hasImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={game.imageUrl} alt="" loading="lazy" />
+        ) : (
+          <div className="game-card__image-fallback" aria-hidden="true">
+            {game.title.slice(0, 2).toUpperCase()}
+          </div>
+        )}
         <span className="game-card__badge">
           <Star size={14} aria-hidden="true" />
           {game.steamReviewCount
@@ -60,9 +67,11 @@ export function GameCard({ game, actionLabel = "관심 목록 추가" }: GameCar
                   <span>{formatPrice(price.regularPriceCents, price.currency)}</span>
                 ) : null}
               </span>
-              <span className={price.discountPercent >= 50 ? "discount discount--hot" : "discount"}>
-                -{price.discountPercent}%
-              </span>
+              {price.discountPercent > 0 ? (
+                <span className={price.discountPercent >= 50 ? "discount discount--hot" : "discount"}>
+                  -{price.discountPercent}%
+                </span>
+              ) : null}
             </a>
           ))}
         </div>

@@ -8,7 +8,7 @@ test("public home shows popular game feed", async ({ page }) => {
 
 test("mobile webview viewport can open dashboard demo", async ({ page }) => {
   await page.goto("/app?webview=1");
-  await expect(page.getByRole("heading", { name: "내 관심 게임" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "로그인" })).toBeVisible();
 
   const bottomTabs = page.getByLabel("모바일 하단 메뉴");
   const viewport = page.viewportSize();

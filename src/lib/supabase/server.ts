@@ -4,7 +4,8 @@ import { createServerClient } from "@supabase/ssr";
 import type { CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { requireSupabaseEnv } from "@/lib/env";
-import type { Database } from "./types";
+import { createSupabaseFetch } from "./fetch";
+import type { Database, TypedSupabaseClient } from "./types";
 
 type CookieToSet = {
   name: string;
@@ -12,11 +13,14 @@ type CookieToSet = {
   options?: CookieOptions;
 };
 
-export async function createClient() {
+export async function createClient(): Promise<TypedSupabaseClient> {
   const { url, anonKey } = requireSupabaseEnv();
   const cookieStore = await cookies();
 
   return createServerClient<Database>(url, anonKey, {
+    global: {
+      fetch: createSupabaseFetch()
+    },
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -31,5 +35,5 @@ export async function createClient() {
         }
       }
     }
-  });
+  }) as unknown as TypedSupabaseClient;
 }

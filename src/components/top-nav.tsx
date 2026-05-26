@@ -1,7 +1,7 @@
-import Link from "next/link";
-import { Gamepad2, LogIn, UserCircle } from "lucide-react";
-import { SearchBar } from "./search-bar";
+import { Gamepad2, LogIn, LogOut, UserCircle } from "lucide-react";
+import { logout } from "@/app/(auth)/logout/actions";
 import { isSupabaseConfigured } from "@/lib/env";
+import { SearchBar } from "./search-bar";
 
 type TopNavProps = {
   isAuthenticated?: boolean;
@@ -11,34 +11,45 @@ export function TopNav({ isAuthenticated = false }: TopNavProps) {
   return (
     <header className="top-nav">
       <div className="container top-nav__inner">
-        <Link className="brand" href="/">
+        <a className="brand" href="/">
           <span className="brand__mark">
             <Gamepad2 size={19} aria-hidden="true" />
           </span>
           <span>Game Deal Watch</span>
-        </Link>
+        </a>
 
         <SearchBar />
 
         <nav className="nav-actions" aria-label="사용자 메뉴">
-          <Link className="button button--ghost" href="/deals">
+          <a className="button button--ghost" href="/deals">
             할인
-          </Link>
+          </a>
           {isAuthenticated ? (
-            <Link className="button button--primary" href="/app">
-              <UserCircle size={18} aria-hidden="true" />
-              내 목록
-            </Link>
+            <>
+              <a className="button button--ghost" href="/app">
+                내 목록
+              </a>
+              <a className="button button--ghost" href="/app/profile">
+                <UserCircle size={18} aria-hidden="true" />
+                프로필
+              </a>
+              <form className="nav-form" action={logout}>
+                <button className="button button--primary" type="submit">
+                  <LogOut size={18} aria-hidden="true" />
+                  로그아웃
+                </button>
+              </form>
+            </>
           ) : (
-            <Link className="button button--primary" href="/login">
+            <a className="button button--primary" href="/login">
               <LogIn size={18} aria-hidden="true" />
               로그인
-            </Link>
+            </a>
           )}
           {!isSupabaseConfigured() ? (
-            <Link className="button button--icon" href="/app" title="데모 대시보드">
+            <a className="button button--icon" href="/app" title="데모 대시보드">
               <UserCircle size={19} aria-hidden="true" />
-            </Link>
+            </a>
           ) : null}
         </nav>
       </div>

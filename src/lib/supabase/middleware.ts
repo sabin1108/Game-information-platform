@@ -2,7 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import type { CookieOptions } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { env, isSupabaseConfigured } from "@/lib/env";
-import type { Database } from "./types";
+import { createSupabaseFetch } from "./fetch";
+import type { Database, TypedSupabaseClient } from "./types";
 
 type CookieToSet = {
   name: string;
@@ -20,6 +21,9 @@ export async function updateSession(request: NextRequest) {
   }
 
   const supabase = createServerClient<Database>(env.supabaseUrl!, env.supabaseAnonKey!, {
+    global: {
+      fetch: createSupabaseFetch()
+    },
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -32,9 +36,13 @@ export async function updateSession(request: NextRequest) {
         });
       }
     }
-  });
+  }) as unknown as TypedSupabaseClient;
 
-  await supabase.auth.getUser();
+  try {
+    await supabase.auth.getUser();
+  } catch {
+    return response;
+  }
 
   return response;
 }
