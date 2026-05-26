@@ -7,6 +7,14 @@ import { isTargetMatched } from "@/lib/game-score";
 import { mockWatchlist } from "@/lib/mock-data";
 import { getOrCreateProfile, type Profile } from "@/lib/supabase/profiles";
 import { createClient } from "@/lib/supabase/server";
+import { getUserWatchlist } from "@/lib/watchlist";
+
+type AppDashboardPageProps = {
+  searchParams: Promise<{
+    message?: string;
+    error?: string;
+  }>;
+};
 
 const demoProfile: Profile = {
   id: "demo",
@@ -21,7 +29,7 @@ const demoProfile: Profile = {
 
 async function getSessionState() {
   if (!isSupabaseConfigured()) {
-    return { isAuthenticated: true, demoMode: true, profile: demoProfile };
+    return { isAuthenticated: true, demoMode: true, profile: demoProfile, userId: "demo" };
   }
 
   const supabase = await createClient();
@@ -36,13 +44,18 @@ async function getSessionState() {
   return {
     isAuthenticated: true,
     demoMode: false,
+    userId: user.id,
     profile: await getOrCreateProfile(supabase, user)
   };
 }
 
-export default async function AppDashboardPage() {
+export default async function AppDashboardPage({ searchParams }: AppDashboardPageProps) {
+  const { message, error } = await searchParams;
   const session = await getSessionState();
-  const matchedItems = mockWatchlist.filter(isTargetMatched);
+  const watchlistItems = session.demoMode
+    ? mockWatchlist
+    : await getUserWatchlist(session.userId);
+  const matchedItems = watchlistItems.filter(isTargetMatched);
 
   return (
     <>
@@ -58,10 +71,13 @@ export default async function AppDashboardPage() {
           {session.demoMode ? <span className="notice">Supabase 미설정 데모 모드</span> : null}
         </section>
 
+        {message ? <div className="notice notice--success" role="status">{message}</div> : null}
+        {error ? <div className="notice" role="alert">{error}</div> : null}
+
         <section className="status-strip" aria-label="대시보드 지표">
           <div className="stat">
             <span>관심 게임</span>
-            <strong>{mockWatchlist.length}개</strong>
+            <strong>{watchlistItems.length}개</strong>
           </div>
           <div className="stat">
             <span>조건 충족</span>
@@ -85,7 +101,7 @@ export default async function AppDashboardPage() {
           <section className="panel">
             <h2>목표 조건</h2>
             <div className="watchlist">
-              {mockWatchlist.map((item) => (
+              {watchlistItems.length ? watchlistItems.map((item) => (
                 <div className="watchlist-row" key={item.id}>
                   <div>
                     <h3>{item.game.title}</h3>
@@ -105,7 +121,16 @@ export default async function AppDashboardPage() {
                     <span className="tag">대기</span>
                   )}
                 </div>
-              ))}
+              )) : (
+                <div className="watchlist-row">
+                  <div>
+                    <h3>아직 관심 게임이 없습니다.</h3>
+                    <div className="tag-row">
+                      <span className="tag">검색에서 게임을 추가하세요</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 
@@ -133,7 +158,7 @@ export default async function AppDashboardPage() {
         </section>
 
         <section className="game-grid" aria-label="관심 게임 가격">
-          {mockWatchlist.map((item) => (
+          {watchlistItems.map((item) => (
             <GameCard key={item.id} game={item.game} actionLabel="목표 수정" />
           ))}
         </section>
