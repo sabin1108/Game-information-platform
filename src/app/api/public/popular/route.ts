@@ -6,7 +6,7 @@ import { mockGames } from "@/lib/mock-data";
 export async function GET() {
   if (isItadConfigured()) {
     try {
-      const data = await getItadPopular(12);
+      const data = await getItadPopular(24);
 
       return NextResponse.json({
         source: "itad",
@@ -16,13 +16,13 @@ export async function GET() {
       return NextResponse.json({
         source: "mock",
         warning: error instanceof Error ? error.message : "ITAD request failed.",
-        data: mockGames.slice(0, 12)
+        data: mockGames.slice(0, 24)
       });
     }
   }
 
   return NextResponse.json({
     source: "mock",
-    data: mockGames.slice(0, 12)
+    data: mockGames.slice(0, 24)
   });
 }

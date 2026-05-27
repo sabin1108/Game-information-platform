@@ -85,11 +85,24 @@ export function toUnknownStoreProduct(game: ItadGame): StoreProduct {
   };
 }
 
+function toMinorUnits(money: ItadMoney | undefined) {
+  if (!money) {
+    return 0;
+  }
+
+  if (typeof money.amount === "number" && Number.isFinite(money.amount)) {
+    return Math.round(money.amount * 100);
+  }
+
+  return money.amountInt ?? 0;
+}
+
 export function toStoreProduct(game: ItadGame, offer: ItadStoreOffer, historyLow?: ItadMoney): StoreProduct {
   const storeName = offer.shop?.name ?? "IsThereAnyDeal";
-  const currentPriceCents = offer.price?.amountInt ?? 0;
-  const regularPriceCents = offer.regular?.amountInt ?? currentPriceCents;
-  const historyLowCents = offer.historyLow?.amountInt ?? offer.storeLow?.amountInt ?? historyLow?.amountInt;
+  const currentPriceCents = toMinorUnits(offer.price);
+  const regularPriceCents = toMinorUnits(offer.regular) || currentPriceCents;
+  const historyLowCents =
+    toMinorUnits(offer.historyLow) || toMinorUnits(offer.storeLow) || toMinorUnits(historyLow);
 
   return {
     store: toStoreCode(storeName),

@@ -18,7 +18,7 @@ function getWarning(error: unknown) {
   return error instanceof Error ? error.message : "ITAD request failed.";
 }
 
-export async function getPopularFeed(limit = 12): Promise<GameFeed> {
+export async function getPopularFeed(limit = 24): Promise<GameFeed> {
   if (!isItadConfigured()) {
     return { source: "mock", games: mockGames.slice(0, limit) };
   }
@@ -58,7 +58,7 @@ export async function getDealFeed(options: {
 }
 
 export async function searchGameFeed(query: string): Promise<GameFeed> {
-  const result = await searchGames(query);
+  const result = await searchGames(query, { limit: 40 });
 
   return {
     source: result.source,

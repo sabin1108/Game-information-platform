@@ -19,11 +19,9 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
       <main className="auth-shell">
         <section className="auth-card">
           <h1>회원가입</h1>
-          <p>이메일/비밀번호 인증으로 시작하고, 이후 Google과 Steam 연동을 추가합니다.</p>
+          <p>이메일로 시작하고, 관심 목록은 내 계정에만 저장합니다.</p>
           {!isSupabaseConfigured() ? (
-            <div className="notice">
-              Supabase 환경변수가 없어 회원가입 제출 시 데모 대시보드로 이동합니다.
-            </div>
+            <div className="notice">Supabase 설정이 없어 데모 대시보드로 이동합니다.</div>
           ) : null}
           {error ? (
             <div className="notice" role="alert">

@@ -27,7 +27,7 @@ export function TopNav({ isAuthenticated = false }: TopNavProps) {
           {isAuthenticated ? (
             <>
               <a className="button button--ghost" href="/app">
-                내 목록
+                관심 목록
               </a>
               <a className="button button--ghost" href="/app/profile">
                 <UserCircle size={18} aria-hidden="true" />

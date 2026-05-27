@@ -19,11 +19,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <main className="auth-shell">
         <section className="auth-card">
           <h1>로그인</h1>
-          <p>관심 게임, 목표 가격, 할인 조건을 사용자 계정에 저장합니다.</p>
+          <p>관심 게임과 목표 가격을 계정에 저장합니다.</p>
           {!isSupabaseConfigured() ? (
-            <div className="notice">
-              Supabase 환경변수가 없어 로그인 제출 시 데모 대시보드로 이동합니다.
-            </div>
+            <div className="notice">Supabase 설정이 없어 데모 대시보드로 이동합니다.</div>
           ) : null}
           {error ? (
             <div className="notice" role="alert">

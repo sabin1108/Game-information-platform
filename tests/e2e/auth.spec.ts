@@ -107,7 +107,7 @@ test("signup creates Supabase auth user and profile row", async ({ page }) => {
   await page.getByRole("button", { name: "회원가입" }).click();
 
   await expect(page).toHaveURL(/\/app$/);
-  await expect(page.getByRole("heading", { name: "내 관심 게임" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "관심 게임" })).toBeVisible();
 
   const user = await findUserByEmail(email);
   expect(user).not.toBeNull();
@@ -116,9 +116,7 @@ test("signup creates Supabase auth user and profile row", async ({ page }) => {
   await deleteUserByEmail(email);
 });
 
-test("protected app requires login, allows login, and blocks access after logout", async ({
-  page
-}) => {
+test("protected app requires login, allows login, and blocks access after logout", async ({ page }) => {
   const email = `e2e-login-${randomUUID()}@example.com`;
   const password = "Passw0rd!2345";
 
@@ -134,12 +132,12 @@ test("protected app requires login, allows login, and blocks access after logout
   await page.getByRole("button", { name: "로그인" }).click();
 
   await expect(page).toHaveURL(/\/app$/);
-  await expect(page.getByRole("heading", { name: "내 관심 게임" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "관심 게임" })).toBeVisible();
   await expectProfileForUser(user.id);
 
   await page.getByRole("button", { name: "로그아웃" }).click();
   await expect(page).toHaveURL(/\/login\?message=/);
-  await expect(page.getByRole("status")).toContainText("로그아웃");
+  await expect(page.getByRole("status")).toContainText("로그아웃했습니다");
 
   await page.goto("/app");
   await expect(page).toHaveURL(/\/login$/);

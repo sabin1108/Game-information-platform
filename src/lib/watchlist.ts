@@ -15,6 +15,12 @@ export type AddWatchlistResult = {
   status: "created" | "exists";
 };
 
+export type WatchlistTargetInput = {
+  targetPriceCents?: number | null;
+  targetDiscountPercent?: number | null;
+  note?: string | null;
+};
+
 function toJson(value: unknown): Json {
   return JSON.parse(JSON.stringify(value)) as Json;
 }
@@ -142,6 +148,36 @@ export async function addGameToWatchlist(
   }
 
   throw new Error(error.message);
+}
+
+export async function updateWatchlistTarget(
+  supabase: SupabaseServerClient,
+  userId: string,
+  itemId: string,
+  input: WatchlistTargetInput
+) {
+  const { data, error } = await supabase
+    .from("watchlist_items")
+    .update({
+      target_price_cents: input.targetPriceCents ?? null,
+      target_discount_percent: input.targetDiscountPercent ?? null,
+      note: input.note?.trim() ? input.note.trim() : null,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", itemId)
+    .eq("user_id", userId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    throw new Error("Watchlist item not found.");
+  }
+
+  return data;
 }
 
 function toGameSummary(game: GameRow, prices: StorePrice[]): GameSummary {

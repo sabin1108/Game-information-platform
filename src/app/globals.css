@@ -167,6 +167,14 @@ button {
   overflow-x: auto;
 }
 
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 12px 0 18px;
+  overflow-x: auto;
+}
+
 .tab {
   display: inline-flex;
   gap: 8px;
@@ -415,6 +423,33 @@ button {
   font-size: 1rem;
 }
 
+.target-form {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.target-form__summary {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.target-form__summary h3 {
+  margin: 0 0 7px;
+  font-size: 1rem;
+}
+
+.target-form__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .match {
   display: inline-flex;
   gap: 6px;
@@ -591,6 +626,7 @@ button {
   .game-grid,
   .status-strip,
   .dashboard-grid,
+  .target-form__fields,
   .profile-grid {
     grid-template-columns: 1fr;
   }

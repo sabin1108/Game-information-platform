@@ -1,9 +1,9 @@
 import React from "react";
 import type { ReactNode } from "react";
 import { BadgeCheck, BellPlus, ExternalLink, Star } from "lucide-react";
-import type { GameSummary } from "@/types/game";
 import { formatCompactNumber, formatPrice } from "@/lib/format";
 import { getBestPrice } from "@/lib/game-score";
+import type { GameSummary } from "@/types/game";
 
 type GameCardProps = {
   game: GameSummary;
@@ -11,7 +11,7 @@ type GameCardProps = {
   action?: ReactNode;
 };
 
-export function GameCard({ game, actionLabel = "관심 목록 추가", action }: GameCardProps) {
+export function GameCard({ game, actionLabel = "관심 목록에 추가", action }: GameCardProps) {
   const bestPrice = getBestPrice(game);
   const isUpcoming = game.releaseStatus === "upcoming";
   const hasImage = Boolean(game.imageUrl);

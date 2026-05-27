@@ -1,20 +1,27 @@
-import type { GameSummary, WatchlistItem } from "@/types/game";
+import type { GameSummary, StorePrice, WatchlistItem } from "@/types/game";
 
 export function getBestPrice(game: GameSummary) {
-  return game.prices.reduce((best, price) => {
+  const pricedOffers = game.prices.filter((price) => price.currentPriceCents > 0);
+
+  return pricedOffers.reduce<StorePrice | undefined>((best, price) => {
     if (!best) {
       return price;
     }
 
     return price.currentPriceCents < best.currentPriceCents ? price : best;
-  }, game.prices[0]);
+  }, undefined);
 }
 
-export function isTargetMatched(item: WatchlistItem) {
+export function getTargetMatchState(item: WatchlistItem) {
   const bestPrice = getBestPrice(item.game);
 
   if (!bestPrice) {
-    return false;
+    return {
+      bestPrice,
+      matched: false,
+      priceMatched: false,
+      discountMatched: false
+    };
   }
 
   const priceMatched =
@@ -25,7 +32,36 @@ export function isTargetMatched(item: WatchlistItem) {
     typeof item.targetDiscountPercent === "number" &&
     bestPrice.discountPercent >= item.targetDiscountPercent;
 
-  return priceMatched || discountMatched;
+  return {
+    bestPrice,
+    matched: priceMatched || discountMatched,
+    priceMatched,
+    discountMatched
+  };
+}
+
+export function isTargetMatched(item: WatchlistItem) {
+  return getTargetMatchState(item).matched;
+}
+
+export function sortWatchlistByTargetStatus(items: WatchlistItem[]) {
+  return [...items].sort((a, b) => {
+    const aState = getTargetMatchState(a);
+    const bState = getTargetMatchState(b);
+
+    if (aState.matched !== bState.matched) {
+      return aState.matched ? -1 : 1;
+    }
+
+    const aDiscount = aState.bestPrice?.discountPercent ?? 0;
+    const bDiscount = bState.bestPrice?.discountPercent ?? 0;
+
+    if (aDiscount !== bDiscount) {
+      return bDiscount - aDiscount;
+    }
+
+    return a.game.title.localeCompare(b.game.title);
+  });
 }
 
 export function calculatePopularScore(game: GameSummary) {

@@ -2,8 +2,10 @@ import { redirect } from "next/navigation";
 import { BellRing, Database, ShieldCheck, TrendingDown } from "lucide-react";
 import { GameCard } from "@/components/game-card";
 import { TopNav } from "@/components/top-nav";
+import { WatchlistTargetForm } from "@/components/watchlist-target-form";
 import { isSupabaseConfigured } from "@/lib/env";
-import { isTargetMatched } from "@/lib/game-score";
+import { formatPrice } from "@/lib/format";
+import { getTargetMatchState, isTargetMatched, sortWatchlistByTargetStatus } from "@/lib/game-score";
 import { mockWatchlist } from "@/lib/mock-data";
 import { getOrCreateProfile, type Profile } from "@/lib/supabase/profiles";
 import { createClient } from "@/lib/supabase/server";
@@ -13,6 +15,7 @@ type AppDashboardPageProps = {
   searchParams: Promise<{
     message?: string;
     error?: string;
+    filter?: string;
   }>;
 };
 
@@ -50,12 +53,14 @@ async function getSessionState() {
 }
 
 export default async function AppDashboardPage({ searchParams }: AppDashboardPageProps) {
-  const { message, error } = await searchParams;
+  const { message, error, filter } = await searchParams;
   const session = await getSessionState();
   const watchlistItems = session.demoMode
     ? mockWatchlist
     : await getUserWatchlist(session.userId);
-  const matchedItems = watchlistItems.filter(isTargetMatched);
+  const sortedItems = sortWatchlistByTargetStatus(watchlistItems);
+  const matchedItems = sortedItems.filter(isTargetMatched);
+  const visibleItems = filter === "matched" ? matchedItems : sortedItems;
 
   return (
     <>
@@ -63,70 +68,62 @@ export default async function AppDashboardPage({ searchParams }: AppDashboardPag
       <main className="container">
         <section className="section-header">
           <div>
-            <h1>내 관심 게임</h1>
+            <h1>관심 게임</h1>
             <p>
-              관심 목록의 목표 가격과 할인율을 기준으로 지금 구매 타이밍인지 확인합니다.
+              게임마다 원하는 가격이나 할인율을 저장해두세요.
+              조건을 만족한 게임은 위쪽에 먼저 보여줍니다.
             </p>
           </div>
-          {session.demoMode ? <span className="notice">Supabase 미설정 데모 모드</span> : null}
+          {session.demoMode ? <span className="notice">데모 모드라 목표 수정은 비활성화되어 있습니다.</span> : null}
         </section>
 
         {message ? <div className="notice notice--success" role="status">{message}</div> : null}
         {error ? <div className="notice" role="alert">{error}</div> : null}
 
-        <section className="status-strip" aria-label="대시보드 지표">
+        <section className="status-strip" aria-label="대시보드 상태">
           <div className="stat">
             <span>관심 게임</span>
-            <strong>{watchlistItems.length}개</strong>
+            <strong>{watchlistItems.length}</strong>
           </div>
           <div className="stat">
             <span>조건 충족</span>
-            <strong>{matchedItems.length}개</strong>
+            <strong>{matchedItems.length}</strong>
           </div>
           <div className="stat">
-            <span>캐시 전략</span>
+            <span>가격 데이터</span>
             <strong>
               <Database size={18} aria-hidden="true" /> DB
             </strong>
           </div>
           <div className="stat">
-            <span>보안</span>
+            <span>적용 범위</span>
             <strong>
-              <ShieldCheck size={18} aria-hidden="true" /> RLS
+              <ShieldCheck size={18} aria-hidden="true" /> 내 목록
             </strong>
           </div>
         </section>
 
+        <div className="filter-bar" aria-label="관심 목록 필터">
+          <a className="tab" data-active={filter !== "matched"} href="/app">
+            전체
+          </a>
+          <a className="tab" data-active={filter === "matched"} href="/app?filter=matched">
+            조건 충족만
+          </a>
+        </div>
+
         <div className="dashboard-grid">
-          <section className="panel">
+          <section className="panel" id="targets">
             <h2>목표 조건</h2>
             <div className="watchlist">
-              {watchlistItems.length ? watchlistItems.map((item) => (
-                <div className="watchlist-row" key={item.id}>
-                  <div>
-                    <h3>{item.game.title}</h3>
-                    <div className="tag-row">
-                      {item.targetDiscountPercent ? (
-                        <span className="tag">목표 할인 {item.targetDiscountPercent}%</span>
-                      ) : null}
-                      {item.targetPriceCents ? <span className="tag">목표 가격 설정됨</span> : null}
-                    </div>
-                  </div>
-                  {isTargetMatched(item) ? (
-                    <span className="match">
-                      <BellRing size={15} aria-hidden="true" />
-                      조건 충족
-                    </span>
-                  ) : (
-                    <span className="tag">대기</span>
-                  )}
-                </div>
-              )) : (
+              {visibleItems.length ? (
+                visibleItems.map((item) => <WatchlistTargetForm disabled={session.demoMode} item={item} key={item.id} />)
+              ) : (
                 <div className="watchlist-row">
                   <div>
-                    <h3>아직 관심 게임이 없습니다.</h3>
+                    <h3>조건에 맞는 게임이 없습니다.</h3>
                     <div className="tag-row">
-                      <span className="tag">검색에서 게임을 추가하세요</span>
+                      <span className="tag">검색에서 게임을 추가하거나 필터를 해제하세요.</span>
                     </div>
                   </div>
                 </div>
@@ -137,12 +134,12 @@ export default async function AppDashboardPage({ searchParams }: AppDashboardPag
           <aside className="panel">
             <h2>프로필</h2>
             <p>
-              {session.profile.display_name ?? "이름 없음"} 계정은 {session.profile.preferred_country}/
-              {session.profile.preferred_currency} 기준으로 가격을 확인합니다.
+              {session.profile.display_name ?? "이름 없음"} 계정은{" "}
+              {session.profile.preferred_country}/{session.profile.preferred_currency} 기준으로 가격을 확인합니다.
             </p>
             <span className="match">
               <TrendingDown size={15} aria-hidden="true" />
-              가격 스냅샷 준비됨
+              구매 후보 확인 가능
             </span>
             <a className="button" href="/app/profile">
               프로필 수정
@@ -153,14 +150,31 @@ export default async function AppDashboardPage({ searchParams }: AppDashboardPag
         <section className="section-header">
           <div>
             <h2>스토어별 가격</h2>
-            <p>같은 게임을 내부 game으로 묶고 Steam/Epic product 가격을 분리해서 보여줍니다.</p>
+            <p>Steam/Epic 가격을 게임 단위로 묶고, 최신 가격으로 목표 조건을 계산합니다.</p>
           </div>
         </section>
 
         <section className="game-grid" aria-label="관심 게임 가격">
-          {watchlistItems.map((item) => (
-            <GameCard key={item.id} game={item.game} actionLabel="목표 수정" />
-          ))}
+          {visibleItems.map((item) => {
+            const matchState = getTargetMatchState(item);
+            const label = matchState.bestPrice
+              ? `최저 ${formatPrice(matchState.bestPrice.currentPriceCents, matchState.bestPrice.currency)}`
+              : "현재 가격 없음";
+
+            return (
+              <GameCard
+                action={
+                  <a className="button button--primary" href="#targets">
+                    <BellRing size={17} aria-hidden="true" />
+                    목표 수정
+                  </a>
+                }
+                actionLabel={label}
+                game={item.game}
+                key={item.id}
+              />
+            );
+          })}
         </section>
       </main>
     </>

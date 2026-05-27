@@ -1,6 +1,6 @@
+import { AddToWatchlistForm } from "@/components/add-to-watchlist-form";
 import { GameCard } from "@/components/game-card";
 import { TopNav } from "@/components/top-nav";
-import { AddToWatchlistForm } from "@/components/add-to-watchlist-form";
 import { isSupabaseConfigured } from "@/lib/env";
 import { searchGameFeed } from "@/lib/game-feeds";
 import { createClient } from "@/lib/supabase/server";
@@ -39,8 +39,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           <div>
             <h1>{q ? `"${q}" 검색 결과` : "게임 검색"}</h1>
             <p>
-              {source.toUpperCase()} 기준 검색 결과
-              {cacheStatus ? ` · CACHE ${cacheStatus.toUpperCase()}` : ""}
+              {results.length}개 게임 · {source.toUpperCase()}
+              {cacheStatus ? ` · 캐시 ${cacheStatus.toUpperCase()}` : ""}
             </p>
           </div>
         </section>

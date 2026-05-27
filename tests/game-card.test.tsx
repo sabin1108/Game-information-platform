@@ -16,7 +16,7 @@ describe("GameCard", () => {
 
     expect(screen.getByText("Steam")).toBeTruthy();
     expect(screen.getByText("Epic Games")).toBeTruthy();
-    expect(screen.getByText("₩25,600")).toBeTruthy();
-    expect(screen.getAllByText("₩32,000").length).toBeGreaterThan(0);
+    expect(screen.getByText("25,600원")).toBeTruthy();
+    expect(screen.getAllByText("32,000원").length).toBeGreaterThan(0);
   });
 });

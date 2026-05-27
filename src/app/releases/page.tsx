@@ -15,15 +15,15 @@ export default function ReleasesPage() {
         <section className="section-header">
           <div>
             <h1>신작과 출시 예정</h1>
-            <p>스토어와 태그 필터를 붙이기 전 단계의 신작 탐색 화면입니다.</p>
+            <p>최근 출시작과 곧 나올 게임을 한곳에서 확인합니다.</p>
           </div>
           <span className="match">
             <Sparkles size={16} aria-hidden="true" />
-            {releases.length} candidates
+            {releases.length}개 후보
           </span>
         </section>
 
-        <section className="game-grid" aria-label="신작 및 출시 예정">
+        <section className="game-grid" aria-label="신작과 출시 예정 게임">
           {releases.map((game) => (
             <GameCard key={game.id} game={game} />
           ))}

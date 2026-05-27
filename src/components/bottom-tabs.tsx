@@ -7,7 +7,7 @@ const tabs = [
   { href: "/", label: "홈", icon: House },
   { href: "/deals", label: "할인", icon: Flame },
   { href: "/releases", label: "신작", icon: Sparkles },
-  { href: "/app", label: "내 목록", icon: Library }
+  { href: "/app", label: "관심", icon: Library }
 ] as const;
 
 export function BottomTabs() {

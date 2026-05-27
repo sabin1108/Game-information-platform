@@ -5,8 +5,8 @@ import { getDealFeed, getPopularFeed } from "@/lib/game-feeds";
 
 export default async function HomePage() {
   const [popularFeed, dealFeed] = await Promise.all([
-    getPopularFeed(12),
-    getDealFeed({ country: "KR", limit: 20, minDiscount: 1 })
+    getPopularFeed(24),
+    getDealFeed({ country: "KR", limit: 80, minDiscount: 1 })
   ]);
   const discountedGames = dealFeed.games.filter((game) =>
     game.prices.some((price) => price.discountPercent > 0)
@@ -17,7 +17,7 @@ export default async function HomePage() {
     <>
       <TopNav />
       <main className="container">
-        <div className="tabs" aria-label="주요 보기">
+        <div className="tabs" aria-label="주요 화면">
           <a className="tab" data-active="true" href="/">
             <TrendingUp size={16} aria-hidden="true" />
             인기
@@ -34,29 +34,29 @@ export default async function HomePage() {
 
         <section className="section-header">
           <div>
-            <h1>리뷰가 검증한 할인 게임</h1>
+            <h1>지금 살만한 게임 할인</h1>
             <p>
-              비로그인 홈은 Steam 리뷰 수와 긍정 평가율을 중심으로 인기 게임을 보여주고,
-              Steam/Epic 현재 가격을 함께 비교합니다.
+              Steam과 Epic 가격을 한 화면에서 비교합니다.
+              리뷰 반응과 할인율을 같이 보고 관심 게임을 골라보세요.
             </p>
           </div>
         </section>
 
-        <section className="status-strip" aria-label="서비스 지표">
+        <section className="status-strip" aria-label="서비스 상태">
           <div className="stat">
-            <span>추적 스토어</span>
+            <span>확인 중인 스토어</span>
             <strong>Steam + Epic</strong>
           </div>
           <div className="stat">
             <span>할인 중</span>
-            <strong>{discountedGames.length}개</strong>
+            <strong>{discountedGames.length}</strong>
           </div>
           <div className="stat">
             <span>출시 예정</span>
-            <strong>{upcomingGames.length}개</strong>
+            <strong>{upcomingGames.length}</strong>
           </div>
           <div className="stat">
-            <span>데이터 소스</span>
+            <span>데이터 출처</span>
             <strong>
               <Star size={18} aria-hidden="true" /> {popularFeed.source.toUpperCase()}
             </strong>

@@ -33,10 +33,10 @@ function getWarning(error: unknown) {
 
 function clampLimit(value: number | undefined) {
   if (!value || Number.isNaN(value)) {
-    return 20;
+    return 40;
   }
 
-  return Math.min(50, Math.max(1, Math.floor(value)));
+  return Math.min(100, Math.max(1, Math.floor(value)));
 }
 
 export async function searchGames(query: string, options: {

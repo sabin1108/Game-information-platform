@@ -143,7 +143,7 @@ export async function getItadDeals(options: {
   const data = await fetchItadJson<ItadDealsResponse>("/deals/v2", {
     search: {
       country: options.country ?? "KR",
-      limit: options.limit ?? 20,
+      limit: options.limit ?? 40,
       sort: "-cut",
       filter: typeof options.minDiscount === "number"
         ? JSON.stringify({ cut: { min: options.minDiscount, max: null } })

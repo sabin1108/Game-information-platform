@@ -9,7 +9,7 @@ import { parseGameForWatchlist } from "@/lib/watchlist-serialization";
 
 export async function addToWatchlist(formData: FormData) {
   if (!isSupabaseConfigured()) {
-    redirect("/login?message=Supabase%20설정%20후%20관심%20목록을%20사용할%20수%20있습니다.");
+    redirect(`/login?message=${encodeURIComponent("관심 목록은 Supabase 설정 후 사용할 수 있습니다.")}`);
   }
 
   const supabase = await createClient();
@@ -18,7 +18,7 @@ export async function addToWatchlist(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login?message=로그인%20후%20관심%20목록에%20추가할%20수%20있습니다.");
+    redirect(`/login?message=${encodeURIComponent("관심 목록에 추가하려면 로그인하세요.")}`);
   }
 
   const game = parseGameForWatchlist(formData.get("game"));

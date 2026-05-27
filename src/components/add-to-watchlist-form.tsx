@@ -13,7 +13,7 @@ export function AddToWatchlistForm({ game }: AddToWatchlistFormProps) {
       <input type="hidden" name="game" value={serializeGameForWatchlist(game)} />
       <button className="button button--primary" type="submit">
         <BellPlus size={17} aria-hidden="true" />
-        관심 목록 추가
+        관심 목록에 추가
       </button>
     </form>
   );

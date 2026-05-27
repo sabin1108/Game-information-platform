@@ -91,14 +91,16 @@ async function expectSingleWatchlistRow(userId: string) {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("watchlist_items")
-    .select("id,user_id,game_id", { count: "exact" })
+    .select("id,user_id,game_id,target_price_cents,target_discount_percent", { count: "exact" })
     .eq("user_id", userId);
 
   expect(error).toBeNull();
   expect(data).toHaveLength(1);
+
+  return data![0];
 }
 
-test("search result can be added once and appears on the dashboard", async ({ page }) => {
+test("search result can be added once, targeted, and appears matched on the dashboard", async ({ page }) => {
   const email = `e2e-watchlist-${randomUUID()}@example.com`;
   const password = "Passw0rd!2345";
 
@@ -115,18 +117,30 @@ test("search result can be added once and appears on the dashboard", async ({ pa
   await page.goto("/search?q=Hades%20II");
   const resultCard = page.getByRole("article").filter({ hasText: "Hades II" }).first();
   await expect(resultCard).toBeVisible();
-  await resultCard.getByRole("button", { name: "관심 목록 추가" }).click();
+  await resultCard.getByRole("button", { name: "관심 목록에 추가" }).click();
 
   await expect(page).toHaveURL(/\/app\?message=/);
-  await expect(page.getByRole("status")).toContainText("관심 목록");
-  await expect(page.getByRole("heading", { name: "내 관심 게임" })).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("관심 목록에 추가했습니다");
+  await expect(page.getByRole("heading", { name: "관심 게임" })).toBeVisible();
   await expect(page.getByRole("article").filter({ hasText: "Hades II" }).first()).toBeVisible();
   await expect(page.getByText("Steam").first()).toBeVisible();
   await expectSingleWatchlistRow(user.id);
 
+  await page.getByLabel("Hades II 목표가").fill("26000");
+  await page.getByLabel("Hades II 목표 할인율").fill("20");
+  await page.getByRole("button", { name: "목표 저장" }).click();
+
+  await expect(page).toHaveURL(/\/app\?message=/);
+  await expect(page.getByRole("status")).toContainText("목표 조건을 저장했습니다");
+  await expect(page.getByText("조건 충족").first()).toBeVisible();
+
+  const row = await expectSingleWatchlistRow(user.id);
+  expect(row.target_price_cents).toBe(26000 * 100);
+  expect(row.target_discount_percent).toBe(20);
+
   await page.goto("/search?q=Hades%20II");
   await expect(resultCard).toBeVisible();
-  await resultCard.getByRole("button", { name: "관심 목록 추가" }).click();
+  await resultCard.getByRole("button", { name: "관심 목록에 추가" }).click();
 
   await expect(page).toHaveURL(/\/app\?message=/);
   await expect(page.getByRole("status")).toContainText("이미 관심 목록");
