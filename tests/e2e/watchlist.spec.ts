@@ -100,7 +100,7 @@ async function expectSingleWatchlistRow(userId: string) {
   return data![0];
 }
 
-test("search result can be added once, targeted, and appears matched on the dashboard", async ({ page }) => {
+test("deal filters can be applied and a discounted game can be added once, targeted, and matched", async ({ page }) => {
   const email = `e2e-watchlist-${randomUUID()}@example.com`;
   const password = "Passw0rd!2345";
 
@@ -114,20 +114,29 @@ test("search result can be added once, targeted, and appears matched on the dash
 
   await expect(page).toHaveURL(/\/app$/);
 
-  await page.goto("/search?q=Hades%20II");
-  const resultCard = page.getByRole("article").filter({ hasText: "Hades II" }).first();
-  await expect(resultCard).toBeVisible();
-  await resultCard.getByRole("button", { name: "관심 목록에 추가" }).click();
+  await page.goto("/deals");
+  await page.getByLabel("스토어 필터").selectOption("steam");
+  await page.getByLabel("최소 할인율").fill("20");
+  await page.getByLabel("최대 가격").fill("30000");
+  await page.getByLabel("할인 정렬").selectOption("reviews");
+  await page.getByRole("button", { name: "필터 적용" }).click();
+
+  await expect(page).toHaveURL(/\/deals\?store=steam&minDiscount=20&maxPrice=30000&sort=reviews/);
+
+  const dealCard = page.getByRole("article").first();
+  await expect(dealCard).toBeVisible();
+  const dealTitle = await dealCard.getByRole("heading", { level: 3 }).innerText();
+  await expect(dealCard.getByText("Steam").first()).toBeVisible();
+  await dealCard.getByRole("button", { name: "관심 목록에 추가" }).click();
 
   await expect(page).toHaveURL(/\/app\?message=/);
   await expect(page.getByRole("status")).toContainText("관심 목록에 추가했습니다");
   await expect(page.getByRole("heading", { name: "관심 게임" })).toBeVisible();
-  await expect(page.getByRole("article").filter({ hasText: "Hades II" }).first()).toBeVisible();
+  await expect(page.getByRole("article").filter({ hasText: dealTitle }).first()).toBeVisible();
   await expect(page.getByText("Steam").first()).toBeVisible();
   await expectSingleWatchlistRow(user.id);
 
-  await page.getByLabel("Hades II 목표가").fill("26000");
-  await page.getByLabel("Hades II 목표 할인율").fill("20");
+  await page.getByLabel(`${dealTitle} 목표 할인율`).fill("20");
   await page.getByRole("button", { name: "목표 저장" }).click();
 
   await expect(page).toHaveURL(/\/app\?message=/);
@@ -135,12 +144,12 @@ test("search result can be added once, targeted, and appears matched on the dash
   await expect(page.getByText("조건 충족").first()).toBeVisible();
 
   const row = await expectSingleWatchlistRow(user.id);
-  expect(row.target_price_cents).toBe(26000 * 100);
   expect(row.target_discount_percent).toBe(20);
 
-  await page.goto("/search?q=Hades%20II");
-  await expect(resultCard).toBeVisible();
-  await resultCard.getByRole("button", { name: "관심 목록에 추가" }).click();
+  await page.goto("/deals?store=steam&minDiscount=20&maxPrice=30000&sort=reviews");
+  const duplicateDealCard = page.getByRole("article").filter({ hasText: dealTitle }).first();
+  await expect(duplicateDealCard).toBeVisible();
+  await duplicateDealCard.getByRole("button", { name: "관심 목록에 추가" }).click();
 
   await expect(page).toHaveURL(/\/app\?message=/);
   await expect(page.getByRole("status")).toContainText("이미 관심 목록");

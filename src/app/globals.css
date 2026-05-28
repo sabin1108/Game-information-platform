@@ -175,6 +175,18 @@ button {
   overflow-x: auto;
 }
 
+.deal-filters {
+  display: grid;
+  grid-template-columns: 1.1fr repeat(3, minmax(120px, 0.8fr)) auto;
+  gap: 10px;
+  align-items: end;
+  margin: 0 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  padding: 14px;
+}
+
 .tab {
   display: inline-flex;
   gap: 8px;
@@ -498,7 +510,8 @@ button {
   gap: 7px;
 }
 
-.field label {
+.field label,
+.field > span {
   font-size: 0.88rem;
   font-weight: 800;
 }
@@ -627,6 +640,7 @@ button {
   .status-strip,
   .dashboard-grid,
   .target-form__fields,
+  .deal-filters,
   .profile-grid {
     grid-template-columns: 1fr;
   }
