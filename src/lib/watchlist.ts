@@ -180,6 +180,33 @@ export async function updateWatchlistTarget(
   return data;
 }
 
+export async function archiveWatchlistItem(
+  supabase: SupabaseServerClient,
+  userId: string,
+  itemId: string
+) {
+  const { data, error } = await supabase
+    .from("watchlist_items")
+    .update({
+      archived_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", itemId)
+    .eq("user_id", userId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    throw new Error("Watchlist item not found.");
+  }
+
+  return data;
+}
+
 function toGameSummary(game: GameRow, prices: StorePrice[]): GameSummary {
   return {
     id: game.itad_game_id ?? game.id,

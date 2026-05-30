@@ -27,8 +27,30 @@ export type SearchGamesResult = {
   };
 };
 
+export type SearchFilters = {
+  country?: string;
+  limit?: number;
+  tag?: string;
+  store?: string;
+};
+
 function getWarning(error: unknown) {
   return error instanceof Error ? error.message : "ITAD request failed.";
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string) {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+
+  return Promise.race([
+    promise.finally(() => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    }),
+    new Promise<never>((_, reject) => {
+      timeout = setTimeout(() => reject(new Error(message)), timeoutMs);
+    })
+  ]);
 }
 
 function clampLimit(value: number | undefined) {
@@ -39,10 +61,25 @@ function clampLimit(value: number | undefined) {
   return Math.min(100, Math.max(1, Math.floor(value)));
 }
 
-export async function searchGames(query: string, options: {
-  country?: string;
-  limit?: number;
-} = {}): Promise<SearchGamesResult> {
+function normalizeOptionalText(value: string | undefined) {
+  const trimmed = value?.trim().toLowerCase() ?? "";
+
+  return trimmed || undefined;
+}
+
+function filterGames(games: GameSummary[], options: SearchFilters) {
+  const tag = normalizeOptionalText(options.tag);
+  const store = normalizeOptionalText(options.store);
+
+  return games.filter((game) => {
+    const matchesTag = !tag || game.tags.some((item) => item.toLowerCase().includes(tag));
+    const matchesStore = !store || game.prices.some((price) => price.store === store);
+
+    return matchesTag && matchesStore;
+  });
+}
+
+export async function searchGames(query: string, options: SearchFilters = {}): Promise<SearchGamesResult> {
   const normalizedQuery = normalizeSearchQuery(query);
   const country = (options.country ?? "KR").trim().toUpperCase();
   const limit = clampLimit(options.limit);
@@ -51,7 +88,9 @@ export async function searchGames(query: string, options: {
     provider,
     query: normalizedQuery,
     country,
-    limit
+    limit,
+    tag: options.tag,
+    store: options.store
   });
   const cached = getSearchCache(cacheKey);
 
@@ -74,7 +113,14 @@ export async function searchGames(query: string, options: {
         source: "itad",
         query: normalizedQuery,
         normalized: true,
-        games: await searchItadGames(normalizedQuery, { country, results: limit })
+        games: filterGames(
+          await withTimeout(
+            searchItadGames(normalizedQuery, { country, results: limit }),
+            5000,
+            "ITAD search timed out."
+          ),
+          options
+        )
       };
     } catch (error) {
       payload = {
@@ -82,7 +128,7 @@ export async function searchGames(query: string, options: {
         query: normalizedQuery,
         normalized: true,
         warning: getWarning(error),
-        games: searchMockGames(normalizedQuery).slice(0, limit)
+        games: filterGames(searchMockGames(normalizedQuery), options).slice(0, limit)
       };
     }
   } else {
@@ -90,7 +136,7 @@ export async function searchGames(query: string, options: {
       source: "mock",
       query: normalizedQuery,
       normalized: true,
-      games: searchMockGames(normalizedQuery).slice(0, limit)
+      games: filterGames(searchMockGames(normalizedQuery), options).slice(0, limit)
     };
   }
 

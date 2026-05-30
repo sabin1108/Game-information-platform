@@ -160,6 +160,10 @@ export async function getItadPopular(limit = 12) {
       limit
     }
   });
+  const pricesByGame = await getItadPrices(
+    data.map((game) => game.id),
+    "KR"
+  );
 
-  return data.map((game) => normalizeItadGame(game));
+  return data.map((game) => normalizeItadGame(game, pricesByGame.get(game.id)));
 }

@@ -1,10 +1,9 @@
 import { Flame } from "lucide-react";
-import { AddToWatchlistForm } from "@/components/add-to-watchlist-form";
 import { GameCard } from "@/components/game-card";
 import { TopNav } from "@/components/top-nav";
-import { isSupabaseConfigured } from "@/lib/env";
 import { getDealFeed } from "@/lib/game-feeds";
-import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 type DealsPageProps = {
   searchParams: Promise<{
@@ -15,41 +14,25 @@ type DealsPageProps = {
   }>;
 };
 
-async function getIsAuthenticated() {
-  if (!isSupabaseConfigured()) {
-    return false;
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
-  return Boolean(user);
-}
-
 export default async function DealsPage({ searchParams }: DealsPageProps) {
   const params = await searchParams;
   const minDiscount = Number(params.minDiscount ?? "1");
   const maxPrice = Number(params.maxPrice ?? "");
-  const [{ games: deals, source, warning, dealCacheStatus, filters }, isAuthenticated] = await Promise.all([
-    getDealFeed({
-      country: "KR",
-      limit: 80,
-      minDiscount: Number.isFinite(minDiscount) ? minDiscount : 1,
-      maxPrice: Number.isFinite(maxPrice) ? maxPrice : undefined,
-      store: params.store,
-      sort: params.sort
-    }),
-    getIsAuthenticated()
-  ]);
+  const { games: deals, source, warning, dealCacheStatus, filters } = await getDealFeed({
+    country: "KR",
+    limit: 80,
+    minDiscount: Number.isFinite(minDiscount) ? minDiscount : 1,
+    maxPrice: Number.isFinite(maxPrice) ? maxPrice : undefined,
+    store: params.store,
+    sort: params.sort
+  });
 
   const currentStore = filters?.store ?? "all";
   const currentSort = filters?.sort ?? "discount";
 
   return (
     <>
-      <TopNav isAuthenticated={isAuthenticated} />
+      <TopNav />
       <main className="container">
         <section className="section-header">
           <div>
@@ -112,7 +95,15 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
 
         <section className="game-grid" aria-label="할인 게임">
           {deals.map((game) => (
-            <GameCard key={game.id} game={game} action={<AddToWatchlistForm game={game} />} />
+            <GameCard
+              key={game.id}
+              game={game}
+              action={
+                <a className="button button--primary" href="/login">
+                  로그인 후 찜하기
+                </a>
+              }
+            />
           ))}
         </section>
       </main>

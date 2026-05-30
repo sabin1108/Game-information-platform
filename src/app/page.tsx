@@ -1,7 +1,9 @@
 import { Flame, Sparkles, Star, TrendingUp } from "lucide-react";
-import { GameCard } from "@/components/game-card";
+import { GameFeed } from "@/components/game-feed";
 import { TopNav } from "@/components/top-nav";
 import { getDealFeed, getPopularFeed } from "@/lib/game-feeds";
+
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const [popularFeed, dealFeed] = await Promise.all([
@@ -65,11 +67,7 @@ export default async function HomePage() {
 
         {popularFeed.warning ? <div className="notice">{popularFeed.warning}</div> : null}
 
-        <section className="game-grid" aria-label="인기 게임">
-          {popularFeed.games.map((game) => (
-            <GameCard key={game.id} game={game} />
-          ))}
-        </section>
+        <GameFeed initialGames={popularFeed.games} />
       </main>
     </>
   );

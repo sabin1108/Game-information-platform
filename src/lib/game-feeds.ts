@@ -13,6 +13,7 @@ import { isItadConfigured } from "@/lib/env";
 import { getItadDeals, getItadPopular } from "@/lib/itad";
 import { mockGames } from "@/lib/mock-data";
 import { searchGames } from "@/lib/search";
+import { refreshSteamPrices } from "@/lib/steam-prices";
 import type { SearchCacheStatus } from "@/lib/search-cache";
 import type { GameSummary, StoreCode, StorePrice } from "@/types/game";
 
@@ -28,6 +29,21 @@ export type GameFeed = {
 
 function getWarning(error: unknown) {
   return error instanceof Error ? error.message : "ITAD request failed.";
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string) {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+
+  return Promise.race([
+    promise.finally(() => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    }),
+    new Promise<never>((_, reject) => {
+      timeout = setTimeout(() => reject(new Error(message)), timeoutMs);
+    })
+  ]);
 }
 
 function clampNumber(value: number | undefined, fallback: number, min: number, max: number) {
@@ -151,16 +167,16 @@ function applyDealFilters(games: GameSummary[], filters: DealFilterState) {
 
 export async function getPopularFeed(limit = 24): Promise<GameFeed> {
   if (!isItadConfigured()) {
-    return { source: "mock", games: mockGames.slice(0, limit) };
+    return { source: "mock", games: await refreshSteamPrices(mockGames.slice(0, limit)) };
   }
 
   try {
-    return { source: "itad", games: await getItadPopular(limit) };
+    return { source: "itad", games: await withTimeout(getItadPopular(limit), 5000, "ITAD popular feed timed out.") };
   } catch (error) {
     return {
       source: "mock",
       warning: getWarning(error),
-      games: mockGames.slice(0, limit)
+      games: await refreshSteamPrices(mockGames.slice(0, limit))
     };
   }
 }
@@ -193,21 +209,26 @@ export async function getDealFeed(options: {
   let payload: GameFeed;
 
   if (!isItadConfigured()) {
+    const refreshedGames = await refreshSteamPrices(mockGames, filters.country);
+
     payload = {
       source: "mock",
-      games: applyDealFilters(mockGames, filters)
+      games: applyDealFilters(refreshedGames, filters)
     };
   } else {
     try {
       payload = {
         source: "itad",
-        games: applyDealFilters(await getItadDeals(filters), filters)
+        games: applyDealFilters(
+          await withTimeout(getItadDeals(filters), 5000, "ITAD deals feed timed out."),
+          filters
+        )
       };
     } catch (error) {
       payload = {
         source: "mock",
         warning: getWarning(error),
-        games: applyDealFilters(mockGames, filters)
+        games: applyDealFilters(await refreshSteamPrices(mockGames, filters.country), filters)
       };
     }
   }
@@ -222,8 +243,11 @@ export async function getDealFeed(options: {
   };
 }
 
-export async function searchGameFeed(query: string): Promise<GameFeed> {
-  const result = await searchGames(query, { limit: 40 });
+export async function searchGameFeed(query: string, options: {
+  tag?: string;
+  store?: string;
+} = {}): Promise<GameFeed> {
+  const result = await searchGames(query, { limit: 40, tag: options.tag, store: options.store });
 
   return {
     source: result.source,

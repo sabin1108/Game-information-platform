@@ -1,15 +1,20 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { BellRing, Database, ShieldCheck, TrendingDown } from "lucide-react";
 import { GameCard } from "@/components/game-card";
 import { TopNav } from "@/components/top-nav";
 import { WatchlistTargetForm } from "@/components/watchlist-target-form";
 import { isSupabaseConfigured } from "@/lib/env";
 import { formatPrice } from "@/lib/format";
+import { getDealFeed } from "@/lib/game-feeds";
 import { getTargetMatchState, isTargetMatched, sortWatchlistByTargetStatus } from "@/lib/game-score";
 import { mockWatchlist } from "@/lib/mock-data";
+import { recommendGames } from "@/lib/recommendations";
 import { getOrCreateProfile, type Profile } from "@/lib/supabase/profiles";
 import { createClient } from "@/lib/supabase/server";
 import { getUserWatchlist } from "@/lib/watchlist";
+
+export const dynamic = "force-dynamic";
 
 type AppDashboardPageProps = {
   searchParams: Promise<{
@@ -29,6 +34,25 @@ const demoProfile: Profile = {
   created_at: new Date(0).toISOString(),
   updated_at: new Date(0).toISOString()
 };
+
+async function getSearchTerms() {
+  const cookieStore = await cookies();
+  const raw = cookieStore.get("gdw_search_terms")?.value;
+
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const terms = JSON.parse(raw);
+
+    return Array.isArray(terms)
+      ? terms.filter((term): term is string => typeof term === "string" && Boolean(term.trim())).slice(0, 12)
+      : [];
+  } catch {
+    return [];
+  }
+}
 
 async function getSessionState() {
   if (!isSupabaseConfigured()) {
@@ -54,13 +78,15 @@ async function getSessionState() {
 
 export default async function AppDashboardPage({ searchParams }: AppDashboardPageProps) {
   const { message, error, filter } = await searchParams;
-  const session = await getSessionState();
+  const [session, searchTerms] = await Promise.all([getSessionState(), getSearchTerms()]);
   const watchlistItems = session.demoMode
     ? mockWatchlist
     : await getUserWatchlist(session.userId);
+  const dealFeed = await getDealFeed({ country: session.profile.preferred_country, limit: 80, minDiscount: 1 });
   const sortedItems = sortWatchlistByTargetStatus(watchlistItems);
   const matchedItems = sortedItems.filter(isTargetMatched);
   const visibleItems = filter === "matched" ? matchedItems : sortedItems;
+  const recommendations = recommendGames(dealFeed.games, watchlistItems, searchTerms, 6);
 
   return (
     <>
@@ -176,6 +202,22 @@ export default async function AppDashboardPage({ searchParams }: AppDashboardPag
             );
           })}
         </section>
+
+        {recommendations.length ? (
+          <>
+            <section className="section-header">
+              <div>
+                <h2>태그 기반 추천</h2>
+                <p>찜한 게임과 최근 검색 태그를 할인 목록과 비교해 다음 후보를 고릅니다.</p>
+              </div>
+            </section>
+            <section className="game-grid" aria-label="추천 게임">
+              {recommendations.map((game) => (
+                <GameCard game={game} key={game.id} />
+              ))}
+            </section>
+          </>
+        ) : null}
       </main>
     </>
   );

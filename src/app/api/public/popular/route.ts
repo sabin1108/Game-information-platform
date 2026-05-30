@@ -1,28 +1,37 @@
-import { NextResponse } from "next/server";
-import { isItadConfigured } from "@/lib/env";
-import { getItadPopular } from "@/lib/itad";
+import { NextResponse, type NextRequest } from "next/server";
+import { getPopularFeed } from "@/lib/game-feeds";
 import { mockGames } from "@/lib/mock-data";
+import type { GameSummary } from "@/types/game";
 
-export async function GET() {
-  if (isItadConfigured()) {
-    try {
-      const data = await getItadPopular(24);
-
-      return NextResponse.json({
-        source: "itad",
-        data
-      });
-    } catch (error) {
-      return NextResponse.json({
-        source: "mock",
-        warning: error instanceof Error ? error.message : "ITAD request failed.",
-        data: mockGames.slice(0, 24)
-      });
-    }
+function clamp(value: number, fallback: number, min: number, max: number) {
+  if (!Number.isFinite(value)) {
+    return fallback;
   }
 
+  return Math.min(max, Math.max(min, Math.floor(value)));
+}
+
+export async function GET(request: NextRequest) {
+  const offset = clamp(Number(request.nextUrl.searchParams.get("offset") ?? "0"), 0, 0, 500);
+  const limit = clamp(Number(request.nextUrl.searchParams.get("limit") ?? "24"), 24, 1, 48);
+  const tag = request.nextUrl.searchParams.get("tag")?.trim().toLowerCase();
+  const store = request.nextUrl.searchParams.get("store")?.trim().toLowerCase();
+  const applyFilters = (games: GameSummary[]) =>
+    games.filter((game) => {
+      const tagMatches = !tag || game.tags.some((item) => item.toLowerCase().includes(tag));
+      const storeMatches = !store || game.prices.some((price) => price.store === store);
+
+      return tagMatches && storeMatches;
+    });
+
+  const feed = await getPopularFeed(offset + limit);
+  const data = applyFilters(feed.games.length ? feed.games : mockGames);
+
   return NextResponse.json({
-    source: "mock",
-    data: mockGames.slice(0, 24)
+    source: feed.source,
+    warning: feed.warning,
+    data: data.slice(offset, offset + limit),
+    nextOffset: offset + limit,
+    hasMore: data.length > offset + limit
   });
 }

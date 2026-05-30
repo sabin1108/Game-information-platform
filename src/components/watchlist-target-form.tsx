@@ -1,6 +1,6 @@
 import React from "react";
-import { Save } from "lucide-react";
-import { updateWatchlistTargetAction } from "@/app/app/actions";
+import { Save, Trash2 } from "lucide-react";
+import { removeWatchlistItemAction, updateWatchlistTargetAction } from "@/app/app/actions";
 import { formatPrice } from "@/lib/format";
 import { getTargetMatchState } from "@/lib/game-score";
 import type { WatchlistItem } from "@/types/game";
@@ -79,10 +79,21 @@ export function WatchlistTargetForm({ item, disabled = false }: WatchlistTargetF
         />
       </label>
 
-      <button className="button button--primary" disabled={disabled} type="submit">
-        <Save size={17} aria-hidden="true" />
-        목표 저장
-      </button>
+      <div className="form-actions">
+        <button className="button button--primary" disabled={disabled} type="submit">
+          <Save size={17} aria-hidden="true" />
+          목표 저장
+        </button>
+        <button
+          className="button button--danger"
+          disabled={disabled}
+          formAction={removeWatchlistItemAction}
+          type="submit"
+        >
+          <Trash2 size={17} aria-hidden="true" />
+          삭제
+        </button>
+      </div>
     </form>
   );
 }

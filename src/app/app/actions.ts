@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
-import { updateWatchlistTarget } from "@/lib/watchlist";
+import { archiveWatchlistItem, updateWatchlistTarget } from "@/lib/watchlist";
 
 function parseOptionalNumber(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || !value.trim()) {
@@ -56,4 +56,30 @@ export async function updateWatchlistTargetAction(formData: FormData) {
 
   revalidatePath("/app");
   redirect(`/app?message=${encodeURIComponent("목표 조건을 저장했습니다.")}`);
+}
+
+export async function removeWatchlistItemAction(formData: FormData) {
+  if (!isSupabaseConfigured()) {
+    redirect(`/login?message=${encodeURIComponent("관심 목록 삭제는 Supabase 설정 후 사용할 수 있습니다.")}`);
+  }
+
+  const itemId = formData.get("itemId");
+
+  if (typeof itemId !== "string" || !itemId) {
+    redirect(`/app?error=${encodeURIComponent("삭제할 관심 목록 항목을 찾을 수 없습니다.")}`);
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect(`/login?message=${encodeURIComponent("관심 목록을 삭제하려면 로그인하세요.")}`);
+  }
+
+  await archiveWatchlistItem(supabase, user.id, itemId);
+
+  revalidatePath("/app");
+  redirect(`/app?message=${encodeURIComponent("관심 목록에서 삭제했습니다.")}`);
 }

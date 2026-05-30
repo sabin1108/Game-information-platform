@@ -20,6 +20,7 @@ export type GameSummary = {
   id: string;
   title: string;
   slug: string;
+  steamAppId?: number;
   imageUrl: string;
   releaseDate?: string;
   releaseStatus: ReleaseStatus;

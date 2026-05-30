@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import type { CookieOptions } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
-import { env, isSupabaseConfigured } from "@/lib/env";
+import { env, isLocalAppUrl, isSupabaseConfigured } from "@/lib/env";
 import { createSupabaseFetch } from "./fetch";
 import type { Database, TypedSupabaseClient } from "./types";
 
@@ -17,6 +17,10 @@ export async function updateSession(request: NextRequest) {
   });
 
   if (!isSupabaseConfigured()) {
+    return response;
+  }
+
+  if (process.env.NODE_ENV === "development" && isLocalAppUrl()) {
     return response;
   }
 
@@ -39,7 +43,10 @@ export async function updateSession(request: NextRequest) {
   }) as unknown as TypedSupabaseClient;
 
   try {
-    await supabase.auth.getUser();
+    await Promise.race([
+      supabase.auth.getUser(),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Supabase auth timed out.")), 2500))
+    ]);
   } catch {
     return response;
   }

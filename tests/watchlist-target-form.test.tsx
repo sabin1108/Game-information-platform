@@ -6,6 +6,7 @@ import { WatchlistTargetForm } from "@/components/watchlist-target-form";
 import { mockWatchlist } from "@/lib/mock-data";
 
 vi.mock("@/app/app/actions", () => ({
+  removeWatchlistItemAction: vi.fn(),
   updateWatchlistTargetAction: vi.fn()
 }));
 
@@ -24,5 +25,6 @@ describe("WatchlistTargetForm", () => {
     expect(screen.getByLabelText("Cyberpunk 2077 목표 할인율")).toHaveValue(50);
     expect(screen.getByText("조건 충족")).toBeTruthy();
     expect(screen.getByRole("button", { name: "목표 저장" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "삭제" })).toBeTruthy();
   });
 });

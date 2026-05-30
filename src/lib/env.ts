@@ -37,6 +37,10 @@ export function isSupabaseConfigured() {
 }
 
 export function isItadConfigured() {
+  if (process.env.NODE_ENV === "development" && isLocalAppUrl()) {
+    return false;
+  }
+
   return Boolean(env.itadApiKey);
 }
 

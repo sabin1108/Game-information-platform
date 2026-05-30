@@ -134,4 +134,26 @@ describe("search API route", () => {
     });
     expect(body.data[0].prices.length).toBeGreaterThan(0);
   });
+
+  it("filters fallback search by tag and store", async () => {
+    vi.stubEnv("ITAD_API_KEY", "");
+
+    const { GET } = await loadSearchRoute();
+    const response = await GET(new NextRequest("http://localhost:3000/api/search?q=&tag=RPG&store=steam"));
+    const body = await response.json();
+
+    expect(body.filters).toEqual({
+      tag: "RPG",
+      store: "steam"
+    });
+    expect(body.data.length).toBeGreaterThan(0);
+    expect(body.data.every((game: { tags: string[] }) =>
+      game.tags.some((tag) => tag.toLowerCase().includes("rpg"))
+    )).toBe(true);
+    expect(
+      body.data.every((game: { prices: Array<{ store: string }> }) =>
+        game.prices.some((price) => price.store === "steam")
+      )
+    ).toBe(true);
+  });
 });

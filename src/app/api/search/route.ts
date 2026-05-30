@@ -7,13 +7,19 @@ export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get("q") ?? "";
   const country = request.nextUrl.searchParams.get("country") ?? "KR";
   const limit = Number(request.nextUrl.searchParams.get("limit") ?? "40");
-  const result = await searchGames(query, { country, limit });
+  const tag = request.nextUrl.searchParams.get("tag") ?? undefined;
+  const store = request.nextUrl.searchParams.get("store") ?? undefined;
+  const result = await searchGames(query, { country, limit, tag, store });
 
   return NextResponse.json(
     {
       source: result.source,
       query: result.query,
       normalized: result.normalized,
+      filters: {
+        tag: tag ?? "",
+        store: store ?? ""
+      },
       cache: result.cache,
       warning: result.warning,
       data: result.games

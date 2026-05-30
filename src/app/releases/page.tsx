@@ -3,6 +3,8 @@ import { GameCard } from "@/components/game-card";
 import { TopNav } from "@/components/top-nav";
 import { mockGames } from "@/lib/mock-data";
 
+export const dynamic = "force-dynamic";
+
 export default function ReleasesPage() {
   const releases = mockGames.filter(
     (game) => game.releaseStatus === "upcoming" || game.releaseDate?.startsWith("2024")

@@ -11,6 +11,8 @@ export type SearchCacheKeyInput = {
   country: string;
   limit: number;
   provider: SearchSource;
+  tag?: string;
+  store?: string;
 };
 
 export type SearchCachePayload = {
@@ -36,7 +38,9 @@ export function getSearchCacheKey(input: SearchCacheKeyInput) {
     input.provider,
     normalizeSearchQuery(input.query),
     input.country.trim().toUpperCase(),
-    String(input.limit)
+    String(input.limit),
+    normalizeSearchQuery(input.tag ?? ""),
+    normalizeSearchQuery(input.store ?? "")
   ].join(":");
 }
 

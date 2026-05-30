@@ -154,6 +154,11 @@ button {
   background: transparent;
 }
 
+.button--danger {
+  border-color: #b83232;
+  color: #9f2323;
+}
+
 .button--icon {
   width: 40px;
   padding: 0;
@@ -460,6 +465,18 @@ button {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.feed-sentinel {
+  display: grid;
+  place-items: center;
+  padding: 22px 0 34px;
 }
 
 .match {
