@@ -352,6 +352,25 @@ const baseGames: GameSummary[] = [
         url: steamUrl(2246340, "Monster_Hunter_Wilds")
       }
     ]
+  }),
+  game({
+    title: "Control 2",
+    slug: "control-2",
+    imageUrl: "https://cdn2.unrealengine.com/egs-control2-remedyentertainment-g1a-00-1920x1080-9a9272a5f5d7.jpg",
+    releaseStatus: "unknown",
+    tags: ["Action", "Narrative", "Supernatural"],
+    steamReviewCount: 0,
+    prices: [
+      {
+        store: "epic",
+        storeName: "Epic Games",
+        regularPriceCents: 0,
+        currentPriceCents: 0,
+        currency: "KRW",
+        discountPercent: 0,
+        url: "https://store.epicgames.com/"
+      }
+    ]
   })
 ];
 

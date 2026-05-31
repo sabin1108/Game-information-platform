@@ -1,6 +1,6 @@
 import React from "react";
 import type { ReactNode } from "react";
-import { BadgeCheck, BellPlus, ExternalLink, Star } from "lucide-react";
+import { BadgeCheck, BellPlus, CalendarClock, ExternalLink, Star } from "lucide-react";
 import { formatCompactNumber, formatPrice } from "@/lib/format";
 import { getBestPrice } from "@/lib/game-score";
 import type { GameSummary } from "@/types/game";
@@ -9,6 +9,12 @@ type GameCardProps = {
   game: GameSummary;
   actionLabel?: string;
   action?: ReactNode;
+};
+
+const releaseStatusLabels = {
+  released: "출시됨",
+  upcoming: "출시 예정",
+  unknown: "출시일 미정"
 };
 
 export function GameCard({ game, actionLabel = "관심 목록에 추가", action }: GameCardProps) {
@@ -41,6 +47,11 @@ export function GameCard({ game, actionLabel = "관심 목록에 추가", action
         <div className="game-card__title-row">
           <div>
             <h3>{game.title}</h3>
+            <span className={`release-status release-status--${game.releaseStatus}`}>
+              <CalendarClock size={13} aria-hidden="true" />
+              {releaseStatusLabels[game.releaseStatus]}
+              {game.releaseDate ? ` · ${game.releaseDate}` : ""}
+            </span>
             <div className="tag-row" aria-label="태그">
               {game.tags.slice(0, 3).map((tag) => (
                 <span className="tag" key={tag}>
@@ -88,7 +99,7 @@ export function GameCard({ game, actionLabel = "관심 목록에 추가", action
 
         <a className="button" href={bestPrice?.url ?? "#"}>
           <ExternalLink size={17} aria-hidden="true" />
-          최저가 스토어 열기
+          스토어 열기
         </a>
       </div>
     </article>

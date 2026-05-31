@@ -9,6 +9,14 @@ import {
   type DealFilterState,
   type DealSort
 } from "@/lib/deal-cache";
+import {
+  getReleaseCache,
+  getReleaseCacheKey,
+  releaseCacheConfig,
+  setReleaseCache,
+  type ReleaseCacheStatus,
+  type ReleaseFilterState
+} from "@/lib/release-cache";
 import { isItadConfigured } from "@/lib/env";
 import { getItadDeals, getItadPopular } from "@/lib/itad";
 import { mockGames } from "@/lib/mock-data";
@@ -24,7 +32,10 @@ export type GameFeed = {
   cacheStatus?: SearchCacheStatus;
   dealCacheStatus?: DealCacheStatus;
   dealCacheTtlSeconds?: number;
+  releaseCacheStatus?: ReleaseCacheStatus;
+  releaseCacheTtlSeconds?: number;
   filters?: DealFilterState;
+  releaseFilters?: ReleaseFilterState;
 };
 
 function getWarning(error: unknown) {
@@ -70,6 +81,12 @@ function normalizeSort(value: string | undefined): DealSort {
   return "discount";
 }
 
+function normalizeTag(value: string | undefined) {
+  const tag = value?.trim();
+
+  return tag ? tag : undefined;
+}
+
 export function normalizeDealFilters(options: {
   country?: string;
   limit?: number;
@@ -92,6 +109,20 @@ export function normalizeDealFilters(options: {
     maxPriceCents: maxPriceCents && maxPriceCents > 0 ? maxPriceCents : undefined,
     store: normalizeStore(options.store),
     sort: normalizeSort(options.sort)
+  };
+}
+
+export function normalizeReleaseFilters(options: {
+  country?: string;
+  limit?: number;
+  tag?: string;
+  store?: string;
+} = {}): ReleaseFilterState {
+  return {
+    country: (options.country ?? "KR").trim().toUpperCase(),
+    limit: clampNumber(options.limit, 40, 1, 100),
+    tag: normalizeTag(options.tag),
+    store: normalizeStore(options.store)
   };
 }
 
@@ -163,6 +194,45 @@ function applyDealFilters(games: GameSummary[], filters: DealFilterState) {
 
     return a.title.localeCompare(b.title);
   });
+}
+
+function getReleaseTime(game: GameSummary) {
+  if (!game.releaseDate) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  const time = new Date(game.releaseDate).getTime();
+
+  return Number.isFinite(time) ? time : Number.MAX_SAFE_INTEGER;
+}
+
+function applyReleaseFilters(games: GameSummary[], filters: ReleaseFilterState) {
+  const normalizedTag = filters.tag?.toLowerCase();
+
+  return games
+    .filter((game) => {
+      const tagMatches = !normalizedTag || game.tags.some((tag) => tag.toLowerCase().includes(normalizedTag));
+      const storeMatches = !filters.store || game.prices.some((price) => price.store === filters.store);
+
+      return tagMatches && storeMatches;
+    })
+    .sort((a, b) => {
+      const statusOrder = { upcoming: 0, unknown: 1, released: 2 };
+      const statusDiff = statusOrder[a.releaseStatus] - statusOrder[b.releaseStatus];
+
+      if (statusDiff !== 0) {
+        return statusDiff;
+      }
+
+      const releaseDiff = getReleaseTime(a) - getReleaseTime(b);
+
+      if (releaseDiff !== 0) {
+        return releaseDiff;
+      }
+
+      return a.title.localeCompare(b.title);
+    })
+    .slice(0, filters.limit);
 }
 
 export async function getPopularFeed(limit = 24): Promise<GameFeed> {
@@ -240,6 +310,44 @@ export async function getDealFeed(options: {
     filters,
     dealCacheStatus: "miss",
     dealCacheTtlSeconds: dealCacheConfig.ttlSeconds
+  };
+}
+
+export async function getReleaseFeed(options: {
+  country?: string;
+  limit?: number;
+  tag?: string;
+  store?: string;
+} = {}): Promise<GameFeed> {
+  const filters = normalizeReleaseFilters(options);
+  const provider = "mock";
+  const cacheKey = getReleaseCacheKey(provider, filters);
+  const cached = getReleaseCache(cacheKey);
+
+  if (cached) {
+    return {
+      source: cached.source,
+      warning: cached.warning,
+      games: cached.games,
+      releaseFilters: filters,
+      releaseCacheStatus: "hit",
+      releaseCacheTtlSeconds: cached.ttlSeconds
+    };
+  }
+
+  const refreshedGames = await refreshSteamPrices(mockGames, filters.country);
+  const payload: GameFeed = {
+    source: provider,
+    games: applyReleaseFilters(refreshedGames, filters)
+  };
+
+  setReleaseCache(cacheKey, payload);
+
+  return {
+    ...payload,
+    releaseFilters: filters,
+    releaseCacheStatus: "miss",
+    releaseCacheTtlSeconds: releaseCacheConfig.ttlSeconds
   };
 }
 

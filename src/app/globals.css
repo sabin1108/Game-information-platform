@@ -338,6 +338,7 @@ button {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin-top: 8px;
 }
 
 .tag {
@@ -403,6 +404,32 @@ button {
 .discount--hot {
   background: #fff0e8;
   color: #af3f12;
+}
+
+.release-status {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  margin-top: 7px;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.release-status--released {
+  background: #eef2ef;
+  color: #3d4943;
+}
+
+.release-status--upcoming {
+  background: #e8f2ff;
+  color: #234f8d;
+}
+
+.release-status--unknown {
+  background: #fff3d8;
+  color: #73500f;
 }
 
 .panel {
