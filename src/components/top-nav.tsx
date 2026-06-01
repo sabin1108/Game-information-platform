@@ -1,13 +1,16 @@
 import { Gamepad2, LogIn, LogOut, UserCircle } from "lucide-react";
 import { logout } from "@/app/(auth)/logout/actions";
-import { isSupabaseConfigured } from "@/lib/env";
+import { getNavAuthState } from "@/lib/nav-auth";
 import { SearchBar } from "./search-bar";
 
 type TopNavProps = {
   isAuthenticated?: boolean;
 };
 
-export function TopNav({ isAuthenticated = false }: TopNavProps) {
+export async function TopNav({ isAuthenticated }: TopNavProps) {
+  const navState = await getNavAuthState();
+  const showAuthenticatedActions = isAuthenticated ?? navState.isAuthenticated;
+
   return (
     <header className="top-nav">
       <div className="container top-nav__inner">
@@ -24,7 +27,7 @@ export function TopNav({ isAuthenticated = false }: TopNavProps) {
           <a className="button button--ghost" href="/deals">
             할인
           </a>
-          {isAuthenticated ? (
+          {showAuthenticatedActions ? (
             <>
               <a className="button button--ghost" href="/app">
                 관심 목록
@@ -46,7 +49,7 @@ export function TopNav({ isAuthenticated = false }: TopNavProps) {
               로그인
             </a>
           )}
-          {!isSupabaseConfigured() ? (
+          {navState.demoMode ? (
             <a className="button button--icon" href="/app" title="데모 대시보드">
               <UserCircle size={19} aria-hidden="true" />
             </a>

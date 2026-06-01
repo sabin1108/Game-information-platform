@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 type AuthFormProps = {
   mode: "login" | "signup";
   action: (formData: FormData) => Promise<void>;
+  redirectTo?: string;
 };
 
 function SubmitButton({ mode }: Pick<AuthFormProps, "mode">) {
@@ -19,9 +20,10 @@ function SubmitButton({ mode }: Pick<AuthFormProps, "mode">) {
   );
 }
 
-export function AuthForm({ mode, action }: AuthFormProps) {
+export function AuthForm({ mode, action, redirectTo }: AuthFormProps) {
   return (
     <form className="form-stack" action={action}>
+      {mode === "login" && redirectTo ? <input name="redirectTo" type="hidden" value={redirectTo} /> : null}
       <div className="field">
         <label htmlFor="email">이메일</label>
         <input id="email" name="email" type="email" autoComplete="email" required />

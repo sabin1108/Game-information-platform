@@ -124,7 +124,7 @@ test("protected app requires login, allows login, and blocks access after logout
   const user = await createConfirmedUser(email, password);
 
   await page.goto("/app");
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login\?next=\/app$/);
   await expect(page.getByRole("heading", { name: "로그인" })).toBeVisible();
 
   await page.getByLabel("이메일").fill(email);
@@ -140,8 +140,34 @@ test("protected app requires login, allows login, and blocks access after logout
   await expect(page.getByRole("status")).toContainText("로그아웃했습니다");
 
   await page.goto("/app");
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login\?next=\/app$/);
   await expect(page.getByRole("heading", { name: "로그인" })).toBeVisible();
+
+  await deleteUserByEmail(email);
+});
+
+test("direct login returns home with authenticated nav actions", async ({ page }) => {
+  const email = `e2e-home-nav-${randomUUID()}@example.com`;
+  const password = "Passw0rd!2345";
+
+  await deleteUserByEmail(email);
+  await createConfirmedUser(email, password);
+
+  await page.goto("/login");
+  await page.getByLabel("이메일").fill(email);
+  await page.getByLabel("비밀번호").fill(password);
+  await page.getByRole("button", { name: "로그인" }).click();
+
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("link", { name: /프로필/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "로그아웃" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "로그인" })).toHaveCount(0);
+
+  await page.goto("/deals");
+  await expect(page.getByRole("link", { name: /프로필/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "로그아웃" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "로그인 후 찜하기" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "관심 목록에 추가" }).first()).toBeVisible();
 
   await deleteUserByEmail(email);
 });

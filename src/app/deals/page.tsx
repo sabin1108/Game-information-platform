@@ -1,7 +1,9 @@
 import { Flame } from "lucide-react";
+import { GameCardWatchlistAction } from "@/components/game-card-watchlist-action";
 import { GameCard } from "@/components/game-card";
 import { TopNav } from "@/components/top-nav";
 import { getDealFeed } from "@/lib/game-feeds";
+import { getNavAuthState } from "@/lib/nav-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -18,14 +20,18 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
   const params = await searchParams;
   const minDiscount = Number(params.minDiscount ?? "1");
   const maxPrice = Number(params.maxPrice ?? "");
-  const { games: deals, source, warning, dealCacheStatus, filters } = await getDealFeed({
-    country: "KR",
-    limit: 80,
-    minDiscount: Number.isFinite(minDiscount) ? minDiscount : 1,
-    maxPrice: Number.isFinite(maxPrice) ? maxPrice : undefined,
-    store: params.store,
-    sort: params.sort
-  });
+  const [dealFeed, navState] = await Promise.all([
+    getDealFeed({
+      country: "KR",
+      limit: 80,
+      minDiscount: Number.isFinite(minDiscount) ? minDiscount : 1,
+      maxPrice: Number.isFinite(maxPrice) ? maxPrice : undefined,
+      store: params.store,
+      sort: params.sort
+    }),
+    getNavAuthState()
+  ]);
+  const { games: deals, source, warning, dealCacheStatus, filters } = dealFeed;
 
   const currentStore = filters?.store ?? "all";
   const currentSort = filters?.sort ?? "discount";
@@ -99,9 +105,11 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
               key={game.id}
               game={game}
               action={
-                <a className="button button--primary" href="/login">
-                  로그인 후 찜하기
-                </a>
+                <GameCardWatchlistAction
+                  game={game}
+                  isAuthenticated={navState.isAuthenticated}
+                  loginPath="/login?next=/deals"
+                />
               }
             />
           ))}

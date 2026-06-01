@@ -1,7 +1,9 @@
+import { GameCardWatchlistAction } from "@/components/game-card-watchlist-action";
 import { GameCard } from "@/components/game-card";
 import { SearchTracker } from "@/components/search-tracker";
 import { TopNav } from "@/components/top-nav";
 import { searchGameFeed } from "@/lib/game-feeds";
+import { getNavAuthState } from "@/lib/nav-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +17,11 @@ type SearchPageProps = {
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const { q = "", tag = "", store = "" } = await searchParams;
-  const { games: results, source, warning, cacheStatus } = await searchGameFeed(q, { tag, store });
+  const [searchFeed, navState] = await Promise.all([
+    searchGameFeed(q, { tag, store }),
+    getNavAuthState()
+  ]);
+  const { games: results, source, warning, cacheStatus } = searchFeed;
 
   return (
     <>
@@ -62,9 +68,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               key={game.id}
               game={game}
               action={
-                <a className="button button--primary" href="/login">
-                  로그인 후 찜하기
-                </a>
+                <GameCardWatchlistAction
+                  game={game}
+                  isAuthenticated={navState.isAuthenticated}
+                  loginPath="/login?next=/search"
+                />
               }
             />
           ))}

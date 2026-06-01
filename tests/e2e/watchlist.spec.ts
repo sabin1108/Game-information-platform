@@ -107,7 +107,7 @@ test("deal filters can be applied and a discounted game can be added once, targe
   await deleteUserByEmail(email);
   const user = await createConfirmedUser(email, password);
 
-  await page.goto("/login");
+  await page.goto("/login?next=/app");
   await page.getByLabel("이메일").fill(email);
   await page.getByLabel("비밀번호").fill(password);
   await page.getByRole("button", { name: "로그인" }).click();

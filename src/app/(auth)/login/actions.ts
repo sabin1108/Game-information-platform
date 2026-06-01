@@ -4,9 +4,29 @@ import { redirect } from "next/navigation";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
+type LoginRedirectPath = "/" | "/app" | "/app/profile" | "/deals" | "/releases" | "/search";
+
+function getSafeRedirectPath(value: FormDataEntryValue | null): LoginRedirectPath {
+  const path = String(value ?? "").trim();
+
+  if (
+    path === "/app" ||
+    path === "/app/profile" ||
+    path === "/deals" ||
+    path === "/releases" ||
+    path === "/search"
+  ) {
+    return path;
+  }
+
+  return "/";
+}
+
 export async function login(formData: FormData) {
+  const redirectTo = getSafeRedirectPath(formData.get("redirectTo"));
+
   if (!isSupabaseConfigured()) {
-    redirect("/app");
+    redirect(redirectTo === "/" ? "/app" : redirectTo);
   }
 
   const email = String(formData.get("email") ?? "").trim();
@@ -23,5 +43,5 @@ export async function login(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent(error.message)}`);
   }
 
-  redirect("/");
+  redirect(redirectTo);
 }

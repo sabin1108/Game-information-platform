@@ -4,6 +4,7 @@ import { BadgeCheck, BellPlus, CalendarClock, ExternalLink, Star } from "lucide-
 import { formatCompactNumber, formatPrice } from "@/lib/format";
 import { getBestPrice } from "@/lib/game-score";
 import type { GameSummary } from "@/types/game";
+import { StoreBridgeLink } from "./store-bridge-link";
 
 type GameCardProps = {
   game: GameSummary;
@@ -69,7 +70,18 @@ export function GameCard({ game, actionLabel = "관심 목록에 추가", action
 
         <div className="store-list">
           {game.prices.map((price) => (
-            <a className="store-price" href={price.url} key={`${game.id}-${price.store}`}>
+            <StoreBridgeLink
+              className="store-price"
+              key={`${game.id}-${price.store}`}
+              payload={{
+                gameId: game.id,
+                gameTitle: game.title,
+                store: price.store,
+                storeName: price.storeName,
+                url: price.url,
+                source: "store-price"
+              }}
+            >
               <span className="store-price__store">{price.storeName}</span>
               <span className="store-price__value">
                 <strong>
@@ -86,7 +98,7 @@ export function GameCard({ game, actionLabel = "관심 목록에 추가", action
                   -{price.discountPercent}%
                 </span>
               ) : null}
-            </a>
+            </StoreBridgeLink>
           ))}
         </div>
 
@@ -97,10 +109,20 @@ export function GameCard({ game, actionLabel = "관심 목록에 추가", action
           </button>
         )}
 
-        <a className="button" href={bestPrice?.url ?? "#"}>
+        <StoreBridgeLink
+          className="button"
+          payload={{
+            gameId: game.id,
+            gameTitle: game.title,
+            store: bestPrice?.store ?? "itad",
+            storeName: bestPrice?.storeName ?? "Store",
+            url: bestPrice?.url ?? "#",
+            source: "game-card"
+          }}
+        >
           <ExternalLink size={17} aria-hidden="true" />
           스토어 열기
-        </a>
+        </StoreBridgeLink>
       </div>
     </article>
   );

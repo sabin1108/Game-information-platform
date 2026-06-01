@@ -41,7 +41,7 @@ async function getProfileState() {
   } = await supabase.auth.getUser();
 
   if (error || !user) {
-    redirect("/login");
+    redirect("/login?next=/app/profile");
   }
 
   return {

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { BottomTabs } from "@/components/bottom-tabs";
+import { WebviewMode } from "@/components/webview-mode";
 
 export const metadata: Metadata = {
   title: "Game Deal Watch",
@@ -21,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body>
+        <WebviewMode />
         <div className="page-shell">
           {children}
           <BottomTabs />

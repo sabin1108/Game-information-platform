@@ -1,8 +1,9 @@
 import { Sparkles } from "lucide-react";
-import { AddToWatchlistForm } from "@/components/add-to-watchlist-form";
+import { GameCardWatchlistAction } from "@/components/game-card-watchlist-action";
 import { GameCard } from "@/components/game-card";
 import { TopNav } from "@/components/top-nav";
 import { getReleaseFeed } from "@/lib/game-feeds";
+import { getNavAuthState } from "@/lib/nav-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -15,12 +16,16 @@ type ReleasesPageProps = {
 
 export default async function ReleasesPage({ searchParams }: ReleasesPageProps) {
   const params = await searchParams;
-  const { games: releases, source, warning, releaseCacheStatus, releaseFilters } = await getReleaseFeed({
-    country: "KR",
-    limit: 80,
-    store: params.store,
-    tag: params.tag
-  });
+  const [releaseFeed, navState] = await Promise.all([
+    getReleaseFeed({
+      country: "KR",
+      limit: 80,
+      store: params.store,
+      tag: params.tag
+    }),
+    getNavAuthState()
+  ]);
+  const { games: releases, source, warning, releaseCacheStatus, releaseFilters } = releaseFeed;
   const currentStore = releaseFilters?.store ?? "all";
 
   return (
@@ -67,7 +72,17 @@ export default async function ReleasesPage({ searchParams }: ReleasesPageProps) 
 
         <section className="game-grid" aria-label="신작과 출시 예정 게임">
           {releases.map((game) => (
-            <GameCard key={game.id} game={game} action={<AddToWatchlistForm game={game} />} />
+            <GameCard
+              key={game.id}
+              game={game}
+              action={
+                <GameCardWatchlistAction
+                  game={game}
+                  isAuthenticated={navState.isAuthenticated}
+                  loginPath="/login?next=/releases"
+                />
+              }
+            />
           ))}
         </section>
       </main>

@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function updateProfile(formData: FormData) {
   if (!isSupabaseConfigured()) {
-    redirect("/login");
+    redirect("/login?next=/app/profile");
   }
 
   const supabase = await createClient();
@@ -18,7 +18,7 @@ export async function updateProfile(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (userError || !user) {
-    redirect("/login");
+    redirect("/login?next=/app/profile");
   }
 
   let profileInput;

@@ -65,7 +65,7 @@ async function getSessionState() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/login?next=/app");
   }
 
   return {

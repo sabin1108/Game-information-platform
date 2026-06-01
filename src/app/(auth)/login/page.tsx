@@ -7,11 +7,12 @@ type LoginPageProps = {
   searchParams: Promise<{
     error?: string;
     message?: string;
+    next?: string;
   }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const { error, message } = await searchParams;
+  const { error, message, next } = await searchParams;
 
   return (
     <>
@@ -33,7 +34,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               {message}
             </div>
           ) : null}
-          <AuthForm mode="login" action={login} />
+          <AuthForm mode="login" action={login} redirectTo={next} />
           <p>
             계정이 없나요? <a href="/signup">회원가입</a>
           </p>
