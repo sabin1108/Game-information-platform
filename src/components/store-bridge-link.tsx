@@ -2,6 +2,8 @@
 
 import React from "react";
 import type { AnchorHTMLAttributes, MouseEvent, ReactNode } from "react";
+import { captureClientEvent } from "@/lib/analytics/client";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import { createStoreOpenEvent, STORE_OPEN_EVENT_TYPE, type StoreOpenBridgePayload } from "@/lib/webview-bridge";
 
 declare global {
@@ -27,6 +29,20 @@ export function StoreBridgeLink({ children, payload, ...props }: StoreBridgeLink
     const message = JSON.stringify(bridgeEvent);
 
     window.dispatchEvent(new CustomEvent(STORE_OPEN_EVENT_TYPE, { detail: bridgeEvent }));
+    void captureClientEvent({
+      event: ANALYTICS_EVENTS.dealClick,
+      distinctId: payload.distinctId ?? "anonymous",
+      properties: {
+        experiment_key: payload.experimentKey,
+        variant: payload.variant,
+        game_id: payload.gameId,
+        game_title: payload.gameTitle,
+        store: payload.store,
+        store_name: payload.storeName,
+        url: payload.url,
+        source: payload.source
+      }
+    });
 
     if (window.ReactNativeWebView?.postMessage) {
       event.preventDefault();

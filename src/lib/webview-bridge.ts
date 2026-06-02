@@ -1,4 +1,5 @@
 import type { StoreCode } from "@/types/game";
+import type { PopularCardVariant } from "./analytics/events";
 
 export const STORE_OPEN_EVENT_TYPE = "gdw.store.open";
 
@@ -9,6 +10,9 @@ export type StoreOpenBridgePayload = {
   storeName: string;
   url: string;
   source: "game-card" | "store-price";
+  experimentKey?: string;
+  variant?: PopularCardVariant;
+  distinctId?: string;
 };
 
 export type StoreOpenBridgeEvent = {

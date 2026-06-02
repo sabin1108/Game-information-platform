@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { AnalyticsBootstrap } from "@/components/analytics-bootstrap";
 import { BottomTabs } from "@/components/bottom-tabs";
 import { WebviewMode } from "@/components/webview-mode";
 
@@ -22,6 +23,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body>
+        <AnalyticsBootstrap />
         <WebviewMode />
         <div className="page-shell">
           {children}

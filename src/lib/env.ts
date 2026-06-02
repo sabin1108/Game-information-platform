@@ -4,7 +4,9 @@ export const env = {
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   itadApiKey: process.env.ITAD_API_KEY,
   authDevSkipEmailConfirmation: process.env.AUTH_DEV_SKIP_EMAIL_CONFIRMATION,
-  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  posthogToken: process.env.NEXT_PUBLIC_POSTHOG_TOKEN,
+  posthogHost: process.env.NEXT_PUBLIC_POSTHOG_HOST
 };
 
 function isLocalSupabaseUrl(url: URL) {
@@ -42,6 +44,10 @@ export function isItadConfigured() {
   }
 
   return Boolean(env.itadApiKey);
+}
+
+export function isPostHogConfigured() {
+  return Boolean(env.posthogToken && env.posthogHost);
 }
 
 export function isLocalAppUrl() {

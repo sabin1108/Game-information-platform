@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
+import { captureAnalyticsEvent } from "@/lib/analytics/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { addGameToWatchlist } from "@/lib/watchlist";
@@ -27,6 +29,16 @@ export async function addToWatchlist(formData: FormData) {
     result.status === "exists"
       ? "이미 관심 목록에 있는 게임입니다."
       : "관심 목록에 추가했습니다.";
+
+  await captureAnalyticsEvent({
+    event: ANALYTICS_EVENTS.watchlistAdd,
+    distinctId: user.id,
+    properties: {
+      game_id: game.id,
+      game_title: game.title,
+      status: result.status === "exists" ? "exists" : "added"
+    }
+  });
 
   revalidatePath("/app");
   revalidatePath("/search");

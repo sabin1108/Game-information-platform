@@ -1,8 +1,10 @@
 "use client";
 
 import { LoaderCircle } from "lucide-react";
+import { GameCardWatchlistAction } from "@/components/game-card-watchlist-action";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GameCard } from "@/components/game-card";
+import type { PopularCardVariant } from "@/lib/analytics/events";
 import type { GameSummary } from "@/types/game";
 
 type PopularResponse = {
@@ -16,9 +18,21 @@ type GameFeedProps = {
   initialGames: GameSummary[];
   tag?: string;
   store?: string;
+  cardVariant?: PopularCardVariant;
+  experimentKey?: string;
+  analyticsDistinctId?: string;
+  isAuthenticated?: boolean;
 };
 
-export function GameFeed({ initialGames, tag = "", store = "" }: GameFeedProps) {
+export function GameFeed({
+  initialGames,
+  tag = "",
+  store = "",
+  cardVariant,
+  experimentKey,
+  analyticsDistinctId,
+  isAuthenticated = false
+}: GameFeedProps) {
   const [games, setGames] = useState(initialGames);
   const [offset, setOffset] = useState(initialGames.length);
   const [hasMore, setHasMore] = useState(initialGames.length > 0);
@@ -60,7 +74,7 @@ export function GameFeed({ initialGames, tag = "", store = "" }: GameFeedProps) 
       setHasMore(payload.hasMore && payload.data.length > 0);
       setWarning(payload.warning ?? null);
     } catch (error) {
-      setWarning(error instanceof Error ? error.message : "게임 목록을 더 불러오지 못했습니다.");
+      setWarning(error instanceof Error ? error.message : "게임 목록을 불러오지 못했습니다.");
       setHasMore(false);
     } finally {
       setIsLoading(false);
@@ -74,11 +88,14 @@ export function GameFeed({ initialGames, tag = "", store = "" }: GameFeedProps) 
       return;
     }
 
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0]?.isIntersecting) {
-        void loadMore();
-      }
-    }, { rootMargin: "640px" });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          void loadMore();
+        }
+      },
+      { rootMargin: "640px" }
+    );
 
     observer.observe(sentinel);
 
@@ -87,9 +104,27 @@ export function GameFeed({ initialGames, tag = "", store = "" }: GameFeedProps) 
 
   return (
     <>
-      <section className="game-grid" aria-label="인기 게임">
+      <section
+        className={cardVariant === "variant_a" ? "game-grid game-grid--dense" : "game-grid"}
+        aria-label="인기 게임"
+        data-experiment-key={experimentKey}
+        data-experiment-variant={cardVariant}
+      >
         {games.map((game) => (
-          <GameCard key={game.id} game={game} />
+          <GameCard
+            key={game.id}
+            game={game}
+            cardVariant={cardVariant}
+            experimentKey={experimentKey}
+            analyticsDistinctId={analyticsDistinctId}
+            action={
+              <GameCardWatchlistAction
+                game={game}
+                isAuthenticated={isAuthenticated}
+                loginPath="/login?next=/"
+              />
+            }
+          />
         ))}
       </section>
       {warning ? <div className="notice" role="alert">{warning}</div> : null}
@@ -97,14 +132,14 @@ export function GameFeed({ initialGames, tag = "", store = "" }: GameFeedProps) 
         {isLoading ? (
           <span className="match">
             <LoaderCircle size={15} aria-hidden="true" />
-            더 불러오는 중
+            불러오는 중
           </span>
         ) : hasMore ? (
           <button className="button" onClick={loadMore} type="button">
             더 보기
           </button>
         ) : (
-          <span className="tag">불러올 게임이 더 없습니다.</span>
+          <span className="tag">불러올 게임이 없습니다.</span>
         )}
       </div>
     </>

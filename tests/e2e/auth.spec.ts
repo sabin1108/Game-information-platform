@@ -162,6 +162,10 @@ test("direct login returns home with authenticated nav actions", async ({ page }
   await expect(page.getByRole("link", { name: /프로필/ })).toBeVisible();
   await expect(page.getByRole("button", { name: "로그아웃" })).toBeVisible();
   await expect(page.getByRole("link", { name: "로그인" })).toHaveCount(0);
+  await page.getByRole("button", { name: "관심 목록에 추가" }).first().click();
+
+  await expect(page).toHaveURL(/\/app\?message=/);
+  await expect(page.getByRole("status")).toContainText("관심 목록에 추가");
 
   await page.goto("/deals");
   await expect(page.getByRole("link", { name: /프로필/ })).toBeVisible();

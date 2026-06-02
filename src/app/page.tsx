@@ -1,14 +1,19 @@
 import { Flame, Sparkles, Star, TrendingUp } from "lucide-react";
+import { ExperimentExposure } from "@/components/experiment-exposure";
 import { GameFeed } from "@/components/game-feed";
 import { TopNav } from "@/components/top-nav";
+import { getPopularCardExperiment } from "@/lib/experiments";
 import { getDealFeed, getPopularFeed } from "@/lib/game-feeds";
+import { getNavAuthState } from "@/lib/nav-auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [popularFeed, dealFeed] = await Promise.all([
+  const [popularFeed, dealFeed, popularCardExperiment, navState] = await Promise.all([
     getPopularFeed(24),
-    getDealFeed({ country: "KR", limit: 80, minDiscount: 1 })
+    getDealFeed({ country: "KR", limit: 80, minDiscount: 1 }),
+    getPopularCardExperiment(),
+    getNavAuthState()
   ]);
   const discountedGames = dealFeed.games.filter((game) =>
     game.prices.some((price) => price.discountPercent > 0)
@@ -18,6 +23,12 @@ export default async function HomePage() {
   return (
     <>
       <TopNav />
+      <ExperimentExposure
+        distinctId={popularCardExperiment.distinctId}
+        experimentKey={popularCardExperiment.experimentKey}
+        subjectType={popularCardExperiment.subjectType}
+        variant={popularCardExperiment.variant}
+      />
       <main className="container">
         <div className="tabs" aria-label="주요 화면">
           <a className="tab" data-active="true" href="/">
@@ -67,7 +78,13 @@ export default async function HomePage() {
 
         {popularFeed.warning ? <div className="notice">{popularFeed.warning}</div> : null}
 
-        <GameFeed initialGames={popularFeed.games} />
+        <GameFeed
+          initialGames={popularFeed.games}
+          cardVariant={popularCardExperiment.variant}
+          experimentKey={popularCardExperiment.experimentKey}
+          analyticsDistinctId={popularCardExperiment.distinctId}
+          isAuthenticated={navState.isAuthenticated}
+        />
       </main>
     </>
   );

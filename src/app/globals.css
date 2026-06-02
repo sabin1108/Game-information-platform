@@ -271,6 +271,11 @@ html[data-webview-mode="true"] .page-shell {
   gap: 14px;
 }
 
+.game-grid--dense {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .game-card {
   display: grid;
   grid-template-rows: auto 1fr;
@@ -326,6 +331,15 @@ html[data-webview-mode="true"] .page-shell {
   flex-direction: column;
   gap: 12px;
   padding: 14px;
+}
+
+.game-card--dense .game-card__image {
+  aspect-ratio: 16 / 8;
+}
+
+.game-card--dense .game-card__body {
+  gap: 10px;
+  padding: 12px;
 }
 
 .game-card__title-row {
@@ -693,6 +707,7 @@ html[data-webview-mode="true"] .page-shell {
   }
 
   .game-grid,
+  .game-grid--dense,
   .status-strip,
   .dashboard-grid,
   .target-form__fields,

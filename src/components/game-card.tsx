@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { BadgeCheck, BellPlus, CalendarClock, ExternalLink, Star } from "lucide-react";
 import { formatCompactNumber, formatPrice } from "@/lib/format";
 import { getBestPrice } from "@/lib/game-score";
+import type { PopularCardVariant } from "@/lib/analytics/events";
 import type { GameSummary } from "@/types/game";
 import { StoreBridgeLink } from "./store-bridge-link";
 
@@ -10,6 +11,9 @@ type GameCardProps = {
   game: GameSummary;
   actionLabel?: string;
   action?: ReactNode;
+  cardVariant?: PopularCardVariant;
+  experimentKey?: string;
+  analyticsDistinctId?: string;
 };
 
 const releaseStatusLabels = {
@@ -18,13 +22,20 @@ const releaseStatusLabels = {
   unknown: "출시일 미정"
 };
 
-export function GameCard({ game, actionLabel = "관심 목록에 추가", action }: GameCardProps) {
+export function GameCard({
+  game,
+  actionLabel = "관심 목록에 추가",
+  action,
+  cardVariant,
+  experimentKey,
+  analyticsDistinctId
+}: GameCardProps) {
   const bestPrice = getBestPrice(game);
   const isUpcoming = game.releaseStatus === "upcoming";
   const hasImage = Boolean(game.imageUrl);
 
   return (
-    <article className="game-card">
+    <article className={cardVariant === "variant_a" ? "game-card game-card--dense" : "game-card"}>
       <div className="game-card__image">
         {hasImage ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -79,7 +90,10 @@ export function GameCard({ game, actionLabel = "관심 목록에 추가", action
                 store: price.store,
                 storeName: price.storeName,
                 url: price.url,
-                source: "store-price"
+                source: "store-price",
+                experimentKey,
+                variant: cardVariant,
+                distinctId: analyticsDistinctId
               }}
             >
               <span className="store-price__store">{price.storeName}</span>
@@ -117,7 +131,10 @@ export function GameCard({ game, actionLabel = "관심 목록에 추가", action
             store: bestPrice?.store ?? "itad",
             storeName: bestPrice?.storeName ?? "Store",
             url: bestPrice?.url ?? "#",
-            source: "game-card"
+            source: "game-card",
+            experimentKey,
+            variant: cardVariant,
+            distinctId: analyticsDistinctId
           }}
         >
           <ExternalLink size={17} aria-hidden="true" />
