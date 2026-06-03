@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { withApiMonitoring } from "@/lib/monitoring/api";
 
 const COOKIE_NAME = "gdw_search_terms";
 const MAX_TERMS = 12;
@@ -23,7 +24,7 @@ function parseTerms(value: string | undefined) {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function searchEventsHandler(request: NextRequest) {
   const payload = await request.json().catch(() => ({}));
   const nextTerms = [normalizeTerm(payload.query), normalizeTerm(payload.tag)].filter(Boolean);
   const currentTerms = parseTerms(request.cookies.get(COOKIE_NAME)?.value);
@@ -39,3 +40,5 @@ export async function POST(request: NextRequest) {
 
   return response;
 }
+
+export const POST = withApiMonitoring({ route: "/api/search-events" }, searchEventsHandler);

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AnalyticsBootstrap } from "@/components/analytics-bootstrap";
 import { BottomTabs } from "@/components/bottom-tabs";
+import { MonitoringBootstrap } from "@/components/monitoring-bootstrap";
 import { WebviewMode } from "@/components/webview-mode";
 
 export const metadata: Metadata = {
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="ko">
       <body>
         <AnalyticsBootstrap />
+        <MonitoringBootstrap />
         <WebviewMode />
         <div className="page-shell">
           {children}

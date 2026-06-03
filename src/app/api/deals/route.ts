@@ -1,9 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getDealFeed } from "@/lib/game-feeds";
+import { withApiMonitoring } from "@/lib/monitoring/api";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
+async function dealsHandler(request: NextRequest) {
   const country = request.nextUrl.searchParams.get("country") ?? "KR";
   const limit = Number(request.nextUrl.searchParams.get("limit") ?? "40");
   const minDiscount = Number(request.nextUrl.searchParams.get("minDiscount") ?? "1");
@@ -39,3 +40,5 @@ export async function GET(request: NextRequest) {
     }
   );
 }
+
+export const GET = withApiMonitoring({ route: "/api/deals" }, dealsHandler);

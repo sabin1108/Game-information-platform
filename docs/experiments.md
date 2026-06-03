@@ -1,34 +1,35 @@
-# Experiments
+# 실험 문서
 
 ## `popular-card-density`
 
-Goal: measure whether denser popular-game cards increase store intent without hurting watchlist conversion.
+목표: 인기 게임 카드를 더 촘촘하게 보여주면 스토어 클릭 의도가 증가하는지 확인한다. 단, 관심 목록 추가 전환이 떨어지면 안 된다.
 
-Variants:
+변형:
 
-- `control`: current three-column desktop popular card layout.
-- `variant_a`: denser four-column desktop popular card layout with reduced card spacing.
+- `control`: 기존 데스크톱 3열 인기 카드 레이아웃.
+- `variant_a`: 카드 간격을 줄인 데스크톱 4열 인기 카드 레이아웃.
 
-Assignment:
+배정 방식:
 
-- Authenticated users are assigned by stable Supabase user id.
-- Anonymous users are assigned by the `gdw_anonymous_id` cookie.
-- The assignment hash is deterministic, so the same user or anonymous session keeps the same variant.
+- 로그인 사용자는 Supabase user id 기준으로 배정한다.
+- 비로그인 사용자는 `gdw_anonymous_id` 쿠키 기준으로 배정한다.
+- 배정 hash는 결정적이다. 같은 사용자 또는 같은 익명 세션은 항상 같은 variant를 받는다.
 
-Exposure event:
+노출 이벤트:
 
-- Event: `experiment_exposure`
-- Properties: `experiment_key`, `variant`, `subject_type`, `primary_metric`, `guardrail_metric`
+- 이벤트 이름: `experiment_exposure`
+- 속성: `experiment_key`, `variant`, `subject_type`, `primary_metric`, `guardrail_metric`
 
-Primary metric:
+주요 지표:
 
-- `deal_click`: user clicks a store price row or primary store-open button.
+- `deal_click`: 사용자가 스토어 가격 행 또는 기본 스토어 열기 버튼을 클릭한다.
 
-Guardrail metric:
+가드레일 지표:
 
-- `watchlist_add`: user adds a game to the watchlist. This should not decrease while optimizing for deal clicks.
+- `watchlist_add`: 사용자가 게임을 관심 목록에 추가한다. 스토어 클릭 최적화 중에도 이 지표는 감소하면 안 된다.
 
-Operational rule:
+운영 규칙:
 
-- PostHog capture only runs when `NEXT_PUBLIC_POSTHOG_TOKEN` and `NEXT_PUBLIC_POSTHOG_HOST` are configured.
-- Without PostHog settings, analytics calls become no-ops and must not block search, deals, store clicks, login, or watchlist flows.
+- PostHog capture는 `NEXT_PUBLIC_POSTHOG_TOKEN`과 `NEXT_PUBLIC_POSTHOG_HOST`가 모두 설정된 경우에만 실행한다.
+- PostHog 설정이 없으면 analytics 호출은 no-op으로 처리한다.
+- analytics 실패는 검색, 할인, 스토어 클릭, 로그인, 관심 목록 흐름을 막으면 안 된다.

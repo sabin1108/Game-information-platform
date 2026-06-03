@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { captureAnalyticsEvent } from "@/lib/analytics/server";
 import { ANALYTICS_EVENTS, type AnalyticsCaptureInput } from "@/lib/analytics/events";
+import { withApiMonitoring } from "@/lib/monitoring/api";
 
 const allowedEvents = new Set<string>(Object.values(ANALYTICS_EVENTS));
 
-export async function POST(request: Request) {
+async function analyticsEventsHandler(request: Request) {
   try {
     const payload = (await request.json()) as Partial<AnalyticsCaptureInput>;
 
@@ -23,3 +24,5 @@ export async function POST(request: Request) {
 
   return new NextResponse(null, { status: 204 });
 }
+
+export const POST = withApiMonitoring({ route: "/api/analytics/events" }, analyticsEventsHandler);

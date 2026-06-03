@@ -1,9 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { withApiMonitoring } from "@/lib/monitoring/api";
 import { searchGames } from "@/lib/search";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
+async function searchHandler(request: NextRequest) {
   const query = request.nextUrl.searchParams.get("q") ?? "";
   const country = request.nextUrl.searchParams.get("country") ?? "KR";
   const limit = Number(request.nextUrl.searchParams.get("limit") ?? "40");
@@ -32,3 +33,5 @@ export async function GET(request: NextRequest) {
     }
   );
 }
+
+export const GET = withApiMonitoring({ route: "/api/search" }, searchHandler);

@@ -1,9 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getReleaseFeed } from "@/lib/game-feeds";
+import { withApiMonitoring } from "@/lib/monitoring/api";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
+async function releasesHandler(request: NextRequest) {
   const limit = Number(request.nextUrl.searchParams.get("limit") ?? "40");
   const tag = request.nextUrl.searchParams.get("tag") ?? undefined;
   const store = request.nextUrl.searchParams.get("store") ?? undefined;
@@ -35,3 +36,5 @@ export async function GET(request: NextRequest) {
     }
   );
 }
+
+export const GET = withApiMonitoring({ route: "/api/releases" }, releasesHandler);

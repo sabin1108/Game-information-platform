@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getPopularFeed } from "@/lib/game-feeds";
 import { mockGames } from "@/lib/mock-data";
+import { withApiMonitoring } from "@/lib/monitoring/api";
 import type { GameSummary } from "@/types/game";
 
 function clamp(value: number, fallback: number, min: number, max: number) {
@@ -11,7 +12,7 @@ function clamp(value: number, fallback: number, min: number, max: number) {
   return Math.min(max, Math.max(min, Math.floor(value)));
 }
 
-export async function GET(request: NextRequest) {
+async function popularHandler(request: NextRequest) {
   const offset = clamp(Number(request.nextUrl.searchParams.get("offset") ?? "0"), 0, 0, 500);
   const limit = clamp(Number(request.nextUrl.searchParams.get("limit") ?? "24"), 24, 1, 48);
   const tag = request.nextUrl.searchParams.get("tag")?.trim().toLowerCase();
@@ -33,5 +34,11 @@ export async function GET(request: NextRequest) {
     data: data.slice(offset, offset + limit),
     nextOffset: offset + limit,
     hasMore: data.length > offset + limit
+  }, {
+    headers: {
+      "X-Cache": feed.cacheStatus ?? "miss"
+    }
   });
 }
+
+export const GET = withApiMonitoring({ route: "/api/public/popular" }, popularHandler);
