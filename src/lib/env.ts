@@ -3,6 +3,7 @@ export const env = {
   supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   itadApiKey: process.env.ITAD_API_KEY,
+  itadEnableLocalDev: process.env.ITAD_ENABLE_LOCAL_DEV,
   authDevSkipEmailConfirmation: process.env.AUTH_DEV_SKIP_EMAIL_CONFIRMATION,
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   posthogToken: process.env.NEXT_PUBLIC_POSTHOG_TOKEN,
@@ -42,7 +43,11 @@ export function isSupabaseConfigured() {
 }
 
 export function isItadConfigured() {
-  if (process.env.NODE_ENV === "development" && isLocalAppUrl()) {
+  if (
+    process.env.NODE_ENV === "development" &&
+    isLocalAppUrl() &&
+    env.itadEnableLocalDev !== "true"
+  ) {
     return false;
   }
 

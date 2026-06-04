@@ -18,6 +18,7 @@ NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
 ITAD_API_KEY
+ITAD_ENABLE_LOCAL_DEV
 NEXT_PUBLIC_POSTHOG_TOKEN
 NEXT_PUBLIC_POSTHOG_HOST
 SENTRY_DSN
@@ -26,6 +27,9 @@ VERCEL_ENV
 ```
 
 Only `NEXT_PUBLIC_*` values may be used in client components.
+Local development keeps ITAD disabled by default to avoid accidental external calls. Set
+`ITAD_ENABLE_LOCAL_DEV=true` with `ITAD_API_KEY` when you intentionally want live ITAD feeds on
+`localhost`.
 
 ## 3. Route Overview
 
