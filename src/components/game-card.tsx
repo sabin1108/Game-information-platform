@@ -80,10 +80,10 @@ export function GameCard({
         </div>
 
         <div className="store-list">
-          {game.prices.map((price) => (
+          {game.prices.map((price, index) => (
             <StoreBridgeLink
               className="store-price"
-              key={`${game.id}-${price.store}`}
+              key={`${game.id}-${price.store}-${price.storeName}-${price.url}-${index}`}
               payload={{
                 gameId: game.id,
                 gameTitle: game.title,

@@ -160,4 +160,58 @@ describe("deals API route", () => {
       )
     )).toBe(true);
   });
+
+  it("dedupes repeated ITAD deals for the same game before rendering", async () => {
+    vi.stubEnv("ITAD_API_KEY", "server-only-secret");
+
+    const fetchMock = vi.fn(async () =>
+      Response.json({
+        list: [
+          {
+            id: "duplicate-game",
+            slug: "duplicate-game",
+            title: "Duplicate Game",
+            type: "game",
+            deal: {
+              shop: { id: 61, name: "Steam" },
+              price: { amount: 10, amountInt: 1000, currency: "USD" },
+              regular: { amount: 20, amountInt: 2000, currency: "USD" },
+              cut: 50,
+              url: "https://store.steampowered.com/app/1/"
+            }
+          },
+          {
+            id: "duplicate-game",
+            slug: "duplicate-game",
+            title: "Duplicate Game",
+            type: "game",
+            deal: {
+              shop: { id: 61, name: "Steam" },
+              price: { amount: 9, amountInt: 900, currency: "USD" },
+              regular: { amount: 20, amountInt: 2000, currency: "USD" },
+              cut: 55,
+              url: "https://store.steampowered.com/app/1/"
+            }
+          }
+        ]
+      })
+    );
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { GET } = await loadDealsRoute();
+    const response = await GET(new NextRequest("http://localhost:3000/api/deals?minDiscount=1"));
+    const body = await response.json();
+
+    expect(body.data).toHaveLength(1);
+    expect(body.data[0]).toMatchObject({
+      id: "duplicate-game",
+      prices: [
+        {
+          discountPercent: 55,
+          currentPriceCents: 900
+        }
+      ]
+    });
+  });
 });

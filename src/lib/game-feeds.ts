@@ -165,7 +165,7 @@ function applyDealFilters(games: GameSummary[], filters: DealFilterState) {
   const filtered = games
     .map((game) => ({
       ...game,
-      prices: game.prices.filter((price) => priceMatchesFilters(price, filters))
+      prices: dedupePrices(game.prices.filter((price) => priceMatchesFilters(price, filters)))
     }))
     .filter((game) => game.prices.length > 0);
 
@@ -193,7 +193,49 @@ function applyDealFilters(games: GameSummary[], filters: DealFilterState) {
     }
 
     return a.title.localeCompare(b.title);
-  });
+  }).slice(0, filters.limit);
+}
+
+function getPriceDedupKey(price: StorePrice) {
+  return [price.store, price.storeName.toLowerCase(), price.url].join(":");
+}
+
+function dedupePrices(prices: StorePrice[]) {
+  const byStore = new Map<string, StorePrice>();
+
+  for (const price of prices) {
+    const key = getPriceDedupKey(price);
+    const existing = byStore.get(key);
+
+    if (!existing || price.discountPercent > existing.discountPercent) {
+      byStore.set(key, price);
+    }
+  }
+
+  return [...byStore.values()];
+}
+
+function dedupeGames(games: GameSummary[]) {
+  const byGame = new Map<string, GameSummary>();
+
+  for (const game of games) {
+    const existing = byGame.get(game.id);
+
+    if (!existing) {
+      byGame.set(game.id, {
+        ...game,
+        prices: dedupePrices(game.prices)
+      });
+      continue;
+    }
+
+    byGame.set(game.id, {
+      ...existing,
+      prices: dedupePrices([...existing.prices, ...game.prices])
+    });
+  }
+
+  return [...byGame.values()];
 }
 
 function getReleaseTime(game: GameSummary) {
@@ -283,14 +325,14 @@ export async function getDealFeed(options: {
 
     payload = {
       source: "mock",
-      games: applyDealFilters(refreshedGames, filters)
+      games: applyDealFilters(dedupeGames(refreshedGames), filters)
     };
   } else {
     try {
       payload = {
         source: "itad",
         games: applyDealFilters(
-          await withTimeout(getItadDeals(filters), 5000, "ITAD deals feed timed out."),
+          dedupeGames(await withTimeout(getItadDeals(filters), 5000, "ITAD deals feed timed out.")),
           filters
         )
       };
@@ -298,7 +340,7 @@ export async function getDealFeed(options: {
       payload = {
         source: "mock",
         warning: getWarning(error),
-        games: applyDealFilters(await refreshSteamPrices(mockGames, filters.country), filters)
+        games: applyDealFilters(dedupeGames(await refreshSteamPrices(mockGames, filters.country)), filters)
       };
     }
   }
