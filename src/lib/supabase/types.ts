@@ -182,6 +182,75 @@ export type Database = {
           }
         ];
       };
+      ai_insight_runs: {
+        Row: {
+          id: string;
+          job_type: string;
+          input_window_start: string | null;
+          input_window_end: string | null;
+          status: string;
+          model_name: string | null;
+          error_message: string | null;
+          started_at: string | null;
+          completed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_type: string;
+          input_window_start?: string | null;
+          input_window_end?: string | null;
+          status: string;
+          model_name?: string | null;
+          error_message?: string | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ai_insight_runs"]["Insert"]>;
+        Relationships: [];
+      };
+      ai_game_insights: {
+        Row: {
+          id: string;
+          run_id: string;
+          game_id: string;
+          insight_type: string;
+          title: string;
+          summary: string;
+          evidence: Json;
+          confidence: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          run_id: string;
+          game_id: string;
+          insight_type: string;
+          title: string;
+          summary: string;
+          evidence?: Json;
+          confidence?: number | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ai_game_insights"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "ai_game_insights_run_id_fkey";
+            columns: ["run_id"];
+            isOneToOne: false;
+            referencedRelation: "ai_insight_runs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ai_game_insights_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;

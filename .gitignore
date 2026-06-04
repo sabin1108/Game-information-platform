@@ -32,4 +32,5 @@ pnpm-debug.log*
 
 # local agent config
 .agents
+.claude
 skills-lock.json

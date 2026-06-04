@@ -21,6 +21,7 @@ ITAD_API_KEY
 NEXT_PUBLIC_POSTHOG_TOKEN
 NEXT_PUBLIC_POSTHOG_HOST
 SENTRY_DSN
+JOB_SECRET
 VERCEL_ENV
 ```
 
@@ -59,6 +60,8 @@ POST /api/jobs/generate-ai-insights
 ```
 
 Job routes require a server-side secret or platform scheduler authentication.
+Current job routes accept `Authorization: Bearer <JOB_SECRET>` or `X-Job-Secret: <JOB_SECRET>`.
+The secret must stay server-side and must not be exposed through `NEXT_PUBLIC_*`.
 
 ## 4. Public Home Flow
 
@@ -174,7 +177,7 @@ User opens app
 Required events:
 
 ```txt
-experiment_exposed
+experiment_exposure
 popular_card_clicked
 search_submitted
 watchlist_add
@@ -197,13 +200,21 @@ popular-card-density
 
 ```txt
 Scheduler calls /api/jobs/generate-ai-insights
+  -> Validate JOB_SECRET from Authorization bearer token or X-Job-Secret
+  -> Create an ai_insight_runs row with started_at and running status
   -> Load recent price_snapshots, popular_rankings, watchlist aggregates
   -> Detect candidate insights with deterministic SQL first
   -> Optionally summarize insights with an AI model
-  -> Store run in ai_insight_runs
+  -> Mark ai_insight_runs as succeeded or failed with completed_at and error_message
   -> Store per-game output in ai_game_insights
   -> Surface insights on public home or watchlist dashboard
 ```
+
+The first implementation of `/api/jobs/generate-ai-insights` is a route foundation only. It
+authenticates the caller, records run timing when Supabase admin env is configured, returns a
+dry-run success in local environments without admin env, and leaves candidate detection plus AI
+summarization to later slices. Job failures are returned from the job route only; public feed,
+search, deals, releases, and watchlist APIs must keep working independently.
 
 Good first AI tasks:
 

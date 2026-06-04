@@ -8,7 +8,8 @@ export const env = {
   posthogToken: process.env.NEXT_PUBLIC_POSTHOG_TOKEN,
   posthogHost: process.env.NEXT_PUBLIC_POSTHOG_HOST,
   sentryDsn: process.env.SENTRY_DSN ?? process.env.NEXT_PUBLIC_SENTRY_DSN,
-  publicSentryDsn: process.env.NEXT_PUBLIC_SENTRY_DSN
+  publicSentryDsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  jobSecret: process.env.JOB_SECRET
 };
 
 function isLocalSupabaseUrl(url: URL) {
@@ -110,4 +111,12 @@ export function requireItadEnv() {
   return {
     apiKey: env.itadApiKey
   };
+}
+
+export function requireJobSecret() {
+  if (!env.jobSecret) {
+    throw new Error("JOB_SECRET is not configured.");
+  }
+
+  return env.jobSecret;
 }
