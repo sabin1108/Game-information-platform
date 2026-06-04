@@ -34,6 +34,18 @@ AUTH_DEV_SKIP_EMAIL_CONFIRMATION=false
 `AUTH_DEV_SKIP_EMAIL_CONFIRMATION=true`로 설정할 수 있습니다. 이 옵션은
 `localhost`에서만 service role로 확인 완료 계정을 만들고 즉시 로그인합니다.
 
+## AI Insight Demo
+
+가격 snapshot 기반 인사이트는 job route가 `ai_game_insights`에 저장한 데이터만 홈에 노출합니다.
+
+```bash
+curl -X POST http://localhost:3000/api/jobs/generate-ai-insights \
+  -H "x-job-secret: $JOB_SECRET"
+```
+
+저장된 결과는 홈의 `이번 주 할인 인사이트` 섹션 또는 `GET /api/insights`에서 확인합니다.
+근거 snapshot이 없거나 7일보다 오래되면 현재가처럼 보이지 않도록 오래된 근거로 표시됩니다.
+
 ## Docs
 
 - [Product Spec](docs/product-spec.md)

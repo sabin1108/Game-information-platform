@@ -13,6 +13,7 @@ function defaultCacheStatus(response: Response) {
     response.headers.get("X-Search-Cache") ??
     response.headers.get("X-Deals-Cache") ??
     response.headers.get("X-Releases-Cache") ??
+    response.headers.get("X-Insights-Cache") ??
     response.headers.get("X-Cache") ??
     "none"
   );

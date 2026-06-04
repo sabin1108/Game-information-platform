@@ -1,7 +1,9 @@
 import { Flame, Sparkles, Star, TrendingUp } from "lucide-react";
+import { AiInsightSection } from "@/components/ai-insight-section";
 import { ExperimentExposure } from "@/components/experiment-exposure";
 import { GameFeed } from "@/components/game-feed";
 import { TopNav } from "@/components/top-nav";
+import { getPublicAiInsights } from "@/lib/ai-insights";
 import { getPopularCardExperiment } from "@/lib/experiments";
 import { getDealFeed, getPopularFeed } from "@/lib/game-feeds";
 import { getNavAuthState } from "@/lib/nav-auth";
@@ -9,9 +11,10 @@ import { getNavAuthState } from "@/lib/nav-auth";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [popularFeed, dealFeed, popularCardExperiment, navState] = await Promise.all([
+  const [popularFeed, dealFeed, insightFeed, popularCardExperiment, navState] = await Promise.all([
     getPopularFeed(24),
     getDealFeed({ country: "KR", limit: 80, minDiscount: 1 }),
+    getPublicAiInsights(3),
     getPopularCardExperiment(),
     getNavAuthState()
   ]);
@@ -77,6 +80,8 @@ export default async function HomePage() {
         </section>
 
         {popularFeed.warning ? <div className="notice">{popularFeed.warning}</div> : null}
+
+        <AiInsightSection insights={insightFeed.data} warning={insightFeed.warning} />
 
         <GameFeed
           initialGames={popularFeed.games}

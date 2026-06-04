@@ -461,6 +461,75 @@ html[data-webview-mode="true"] .page-shell {
   box-shadow: var(--shadow);
 }
 
+.section-header--compact {
+  padding-top: 26px;
+}
+
+.insight-section {
+  margin: 8px 0 22px;
+}
+
+.insight-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.insight-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.insight-card__heading,
+.insight-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.insight-card h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.insight-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.insight-card__meta span {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.insight-card__stale {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.empty-state {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  color: var(--muted);
+  padding: 14px;
+  font-weight: 800;
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -708,6 +777,7 @@ html[data-webview-mode="true"] .page-shell {
 
   .game-grid,
   .game-grid--dense,
+  .insight-grid,
   .status-strip,
   .dashboard-grid,
   .target-form__fields,
