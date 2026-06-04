@@ -22,19 +22,15 @@ describe("deals API route", () => {
     vi.unstubAllGlobals();
   });
 
-  it("fetches ITAD deals on the server, filters by store, discount, price, and caches the response", async () => {
+  it("fetches popular ITAD games first, keeps only discounted base games, and caches the response", async () => {
     vi.stubEnv("ITAD_API_KEY", "server-only-secret");
 
-    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = String(input);
 
-      if (!url.includes("/deals/v2")) {
-        throw new Error(`Unexpected ITAD URL: ${url}`);
-      }
-
-      return Response.json(
-        {
-          list: [
+      if (url.includes("/stats/most-popular/v1")) {
+        return Response.json(
+          [
             {
               id: "hades-ii",
               slug: "hades-ii",
@@ -43,59 +39,118 @@ describe("deals API route", () => {
               count: 64320,
               assets: {
                 banner600: "https://assets.isthereanydeal.com/hades/header.jpg"
-              },
-              deal: {
-                shop: {
-                  id: 61,
-                  name: "Steam"
-                },
-                price: {
-                  amount: 25.6,
-                  amountInt: 2560,
-                  currency: "USD"
-                },
-                regular: {
-                  amount: 32,
-                  amountInt: 3200,
-                  currency: "USD"
-                },
-                cut: 20,
-                url: "https://store.steampowered.com/app/1145350/"
               }
+            },
+            {
+              id: "obscure-dlc",
+              slug: "obscure-dlc",
+              title: "Obscure Game DLC Pack",
+              type: "dlc",
+              count: 12,
+              assets: {}
             },
             {
               id: "alan-wake-2",
               slug: "alan-wake-2",
               title: "Alan Wake 2",
               type: "game",
-              assets: {},
-              deal: {
-                shop: {
-                  id: 16,
-                  name: "Epic Games Store"
-                },
-                price: {
-                  amount: 29,
-                  amountInt: 2900,
-                  currency: "USD"
-                },
-                regular: {
-                  amount: 58,
-                  amountInt: 5800,
-                  currency: "USD"
-                },
-                cut: 50,
-                url: "https://store.epicgames.com/"
-              }
+              count: 42000,
+              assets: {}
             }
-          ]
-        },
-        {
-          headers: {
-            "content-type": "application/json"
+          ],
+          {
+            headers: {
+              "content-type": "application/json"
+            }
           }
-        }
-      );
+        );
+      }
+
+      if (url.includes("/games/prices/v3")) {
+        expect(url).toContain("deals=true");
+        expect(init?.method).toBe("POST");
+
+        return Response.json(
+          [
+            {
+              id: "hades-ii",
+              deals: [
+                {
+                  shop: {
+                    id: 61,
+                    name: "Steam"
+                  },
+                  price: {
+                    amount: 25.6,
+                    amountInt: 2560,
+                    currency: "USD"
+                  },
+                  regular: {
+                    amount: 32,
+                    amountInt: 3200,
+                    currency: "USD"
+                  },
+                  cut: 20,
+                  url: "https://store.steampowered.com/app/1145350/"
+                }
+              ]
+            },
+            {
+              id: "obscure-dlc",
+              deals: [
+                {
+                  shop: {
+                    id: 61,
+                    name: "Steam"
+                  },
+                  price: {
+                    amount: 1,
+                    amountInt: 100,
+                    currency: "USD"
+                  },
+                  regular: {
+                    amount: 10,
+                    amountInt: 1000,
+                    currency: "USD"
+                  },
+                  cut: 90,
+                  url: "https://store.steampowered.com/app/2/"
+                }
+              ]
+            },
+            {
+              id: "alan-wake-2",
+              deals: [
+                {
+                  shop: {
+                    id: 16,
+                    name: "Epic Games Store"
+                  },
+                  price: {
+                    amount: 29,
+                    amountInt: 2900,
+                    currency: "USD"
+                  },
+                  regular: {
+                    amount: 58,
+                    amountInt: 5800,
+                    currency: "USD"
+                  },
+                  cut: 50,
+                  url: "https://store.epicgames.com/"
+                }
+              ]
+            }
+          ],
+          {
+            headers: {
+              "content-type": "application/json"
+            }
+          }
+        );
+      }
+
+      throw new Error(`Unexpected ITAD URL: ${url}`);
     });
 
     vi.stubGlobal("fetch", fetchMock);
@@ -108,7 +163,7 @@ describe("deals API route", () => {
 
     expect(first.headers.get("X-Deals-Cache")).toBe("miss");
     expect(second.headers.get("X-Deals-Cache")).toBe("hit");
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(body).toMatchObject({
       source: "itad",
       cache: {
@@ -133,7 +188,48 @@ describe("deals API route", () => {
         }
       ]
     });
+    expect(JSON.stringify(body)).not.toContain("Obscure Game DLC Pack");
     expect(JSON.stringify(body)).not.toContain("server-only-secret");
+  });
+
+  it("keeps discount sorting on the direct ITAD deals endpoint", async () => {
+    vi.stubEnv("ITAD_API_KEY", "server-only-secret");
+
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+
+      if (!url.includes("/deals/v2")) {
+        throw new Error(`Unexpected ITAD URL: ${url}`);
+      }
+
+      return Response.json({
+        list: [
+          {
+            id: "discount-game",
+            slug: "discount-game",
+            title: "Discount Game",
+            type: "game",
+            deal: {
+              shop: { id: 61, name: "Steam" },
+              price: { amount: 10, amountInt: 1000, currency: "USD" },
+              regular: { amount: 20, amountInt: 2000, currency: "USD" },
+              cut: 50,
+              url: "https://store.steampowered.com/app/10/"
+            }
+          }
+        ]
+      });
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { GET } = await loadDealsRoute();
+    const response = await GET(new NextRequest("http://localhost:3000/api/deals?sort=discount&minDiscount=1"));
+    const body = await response.json();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(body.data).toHaveLength(1);
+    expect(body.data[0].title).toBe("Discount Game");
   });
 
   it("filters mock deals with the same cache path when ITAD is not configured", async () => {
@@ -200,7 +296,7 @@ describe("deals API route", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const { GET } = await loadDealsRoute();
-    const response = await GET(new NextRequest("http://localhost:3000/api/deals?minDiscount=1"));
+    const response = await GET(new NextRequest("http://localhost:3000/api/deals?sort=discount&minDiscount=1"));
     const body = await response.json();
 
     expect(body.data).toHaveLength(1);

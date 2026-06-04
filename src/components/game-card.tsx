@@ -1,5 +1,8 @@
+"use client";
+
 import React from "react";
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { BadgeCheck, BellPlus, CalendarClock, ExternalLink, Star } from "lucide-react";
 import { formatCompactNumber, formatPrice } from "@/lib/format";
 import { getBestPrice } from "@/lib/game-score";
@@ -14,6 +17,7 @@ type GameCardProps = {
   cardVariant?: PopularCardVariant;
   experimentKey?: string;
   analyticsDistinctId?: string;
+  compactMeta?: boolean;
 };
 
 const releaseStatusLabels = {
@@ -22,48 +26,87 @@ const releaseStatusLabels = {
   unknown: "출시일 미정"
 };
 
+function formatDealEndsAt(value: string) {
+  const date = new Date(value);
+
+  if (!Number.isFinite(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
+
 export function GameCard({
   game,
   actionLabel = "관심 목록에 추가",
   action,
   cardVariant,
   experimentKey,
-  analyticsDistinctId
+  analyticsDistinctId,
+  compactMeta = false
 }: GameCardProps) {
   const bestPrice = getBestPrice(game);
   const isUpcoming = game.releaseStatus === "upcoming";
-  const hasImage = Boolean(game.imageUrl);
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
+  const imageUrl = game.imageUrl?.trim() ?? "";
+  const hasImage = Boolean(imageUrl && failedImageUrl !== imageUrl);
+  const dealEndsAt = compactMeta ? bestPrice?.endsAt : undefined;
+  const showReviewBadge = Boolean(game.steamReviewCount || isUpcoming || !compactMeta);
+  const showDealEndsAt = Boolean(dealEndsAt);
+  const showReleaseStatus = Boolean(!showDealEndsAt && (game.releaseStatus !== "unknown" || game.releaseDate));
+
+  useEffect(() => {
+    setFailedImageUrl(null);
+  }, [game.id, game.imageUrl]);
 
   return (
     <article className={cardVariant === "variant_a" ? "game-card game-card--dense" : "game-card"}>
       <div className="game-card__image">
         {hasImage ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={game.imageUrl} alt="" loading="lazy" />
+          <img src={imageUrl} alt="" loading="lazy" onError={() => setFailedImageUrl(imageUrl)} />
         ) : (
           <div className="game-card__image-fallback" aria-hidden="true">
             {game.title.slice(0, 2).toUpperCase()}
           </div>
         )}
-        <span className="game-card__badge">
-          <Star size={14} aria-hidden="true" />
-          {game.steamReviewCount
-            ? `${formatCompactNumber(game.steamReviewCount)} / ${game.steamPositiveRatio}%`
-            : isUpcoming
-              ? "출시 예정"
-              : "리뷰 수집 중"}
-        </span>
+        {showReviewBadge ? (
+          <span className="game-card__badge">
+            <Star size={14} aria-hidden="true" />
+            {game.steamReviewCount
+              ? game.steamPositiveRatio
+                ? `${formatCompactNumber(game.steamReviewCount)} / ${game.steamPositiveRatio}%`
+                : `인기 ${formatCompactNumber(game.steamReviewCount)}`
+              : isUpcoming
+                ? "출시 예정"
+                : "리뷰 수집 중"}
+          </span>
+        ) : null}
       </div>
 
       <div className="game-card__body">
         <div className="game-card__title-row">
           <div>
             <h3>{game.title}</h3>
-            <span className={`release-status release-status--${game.releaseStatus}`}>
-              <CalendarClock size={13} aria-hidden="true" />
-              {releaseStatusLabels[game.releaseStatus]}
-              {game.releaseDate ? ` · ${game.releaseDate}` : ""}
-            </span>
+            {showReleaseStatus ? (
+              <span className={`release-status release-status--${game.releaseStatus}`}>
+                <CalendarClock size={13} aria-hidden="true" />
+                {releaseStatusLabels[game.releaseStatus]}
+                {game.releaseDate ? ` · ${game.releaseDate}` : ""}
+              </span>
+            ) : null}
+            {dealEndsAt ? (
+              <span className="release-status release-status--released">
+                <CalendarClock size={13} aria-hidden="true" />
+                할인 종료 {formatDealEndsAt(dealEndsAt)}
+              </span>
+            ) : null}
             <div className="tag-row" aria-label="태그">
               {game.tags.slice(0, 3).map((tag) => (
                 <span className="tag" key={tag}>

@@ -10,6 +10,7 @@ import {
 } from "@/lib/itad-normalizers";
 
 const ITAD_BASE_URL = "https://api.isthereanydeal.com";
+const ITAD_DEALS_MAX_LIMIT = 200;
 
 type ItadDeal = ItadGame & {
   deal?: ItadStoreOffer;
@@ -93,26 +94,36 @@ async function fetchItadJson<T>(path: string, options: FetchItadOptions = {}) {
   return data as T;
 }
 
-async function getItadPrices(gameIds: string[], country: string) {
+async function getItadPrices(gameIds: string[], country: string, deals = false) {
   if (!gameIds.length) {
     return new Map<string, ItadPriceRow>();
   }
 
-  const rows = await fetchItadJson<ItadPriceRow[]>("/games/prices/v3", {
-    search: {
-      country,
-      deals: false,
-      vouchers: true,
-      capacity: 20
-    },
-    init: {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
+  const chunks: string[][] = [];
+
+  for (let index = 0; index < gameIds.length; index += 100) {
+    chunks.push(gameIds.slice(index, index + 100));
+  }
+
+  const rowsByChunk = await Promise.all(chunks.map((chunk) =>
+    fetchItadJson<ItadPriceRow[]>("/games/prices/v3", {
+      search: {
+        country,
+        deals,
+        vouchers: true,
+        capacity: 20
       },
-      body: JSON.stringify(gameIds)
-    }
-  });
+      init: {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(chunk)
+      },
+      timeoutMs: 8000
+    })
+  ));
+  const rows = rowsByChunk.flat();
 
   return new Map(rows.map((row) => [row.id, row]));
 }
@@ -137,13 +148,16 @@ export async function searchItadGames(query: string, options: {
 
 export async function getItadDeals(options: {
   country?: string;
+  offset?: number;
   limit?: number;
   minDiscount?: number;
 } = {}) {
+  const limit = Math.min(ITAD_DEALS_MAX_LIMIT, Math.max(1, options.limit ?? 40));
   const data = await fetchItadJson<ItadDealsResponse>("/deals/v2", {
     search: {
       country: options.country ?? "KR",
-      limit: options.limit ?? 40,
+      limit,
+      offset: options.offset ?? 0,
       sort: "-cut",
       filter: typeof options.minDiscount === "number"
         ? JSON.stringify({ cut: { min: options.minDiscount, max: null } })
@@ -151,18 +165,31 @@ export async function getItadDeals(options: {
     }
   });
 
-  return (data.list ?? []).map((game) => normalizeItadGame(game, toDealPriceRow(game)));
+  return {
+    games: (data.list ?? []).map((game) => normalizeItadGame(game, toDealPriceRow(game))),
+    nextOffset: data.nextOffset,
+    hasMore: data.hasMore
+  };
 }
 
-export async function getItadPopular(limit = 12) {
+export async function getItadPopular(options: {
+  country?: string;
+  offset?: number;
+  limit?: number;
+} | number = 12) {
+  const normalizedOptions = typeof options === "number"
+    ? { limit: options }
+    : options;
   const data = await fetchItadJson<ItadGame[]>("/stats/most-popular/v1", {
     search: {
-      limit
+      offset: normalizedOptions.offset ?? 0,
+      limit: normalizedOptions.limit ?? 12
     }
   });
   const pricesByGame = await getItadPrices(
     data.map((game) => game.id),
-    "KR"
+    normalizedOptions.country ?? "KR",
+    true
   );
 
   return data.map((game) => normalizeItadGame(game, pricesByGame.get(game.id)));

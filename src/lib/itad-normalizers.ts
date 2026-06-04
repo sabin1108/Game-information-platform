@@ -59,6 +59,12 @@ export function getItadImageUrl(assets: ItadAssetMap | undefined) {
   return assets?.banner600 ?? assets?.banner400 ?? assets?.banner300 ?? assets?.boxart ?? "";
 }
 
+export function getSteamAppIdFromUrl(url: string | undefined) {
+  const match = url?.match(/store\.steampowered\.com\/app\/(\d+)/i);
+
+  return match ? Number(match[1]) : undefined;
+}
+
 export function toStoreCode(storeName: string | undefined): StoreCode {
   const normalized = storeName?.toLowerCase() ?? "";
 
@@ -166,14 +172,20 @@ function selectStoreProducts(game: ItadGame, priceRow: ItadPriceRow | undefined)
 }
 
 export function normalizeItadGame(game: ItadGame, priceRow?: ItadPriceRow): GameSummary {
+  const prices = selectStoreProducts(game, priceRow);
+  const steamAppId = prices
+    .map((price) => getSteamAppIdFromUrl(price.url))
+    .find((appId): appId is number => typeof appId === "number" && Number.isFinite(appId));
+
   return {
     id: game.id,
     title: game.title,
     slug: game.slug ?? game.id,
+    steamAppId,
     imageUrl: getItadImageUrl(game.assets),
     releaseStatus: "unknown",
     tags: game.type ? [game.type] : ["Game"],
     steamReviewCount: game.count,
-    prices: selectStoreProducts(game, priceRow)
+    prices
   };
 }

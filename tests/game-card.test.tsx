@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { GameCard } from "@/components/game-card";
 import { mockGames } from "@/lib/mock-data";
@@ -20,7 +20,7 @@ describe("GameCard", () => {
     expect(screen.getAllByText("32,000원").length).toBeGreaterThan(0);
   });
 
-  it("shows the release status on each card", () => {
+  it("hides unknown release status while still showing scheduled releases", () => {
     const upcoming = mockGames.find((item) => item.releaseStatus === "upcoming");
     const unknown = mockGames.find((item) => item.releaseStatus === "unknown");
 
@@ -34,6 +34,26 @@ describe("GameCard", () => {
 
     rerender(<GameCard game={unknown} />);
 
-    expect(screen.getByText("출시일 미정")).toBeTruthy();
+    expect(screen.queryByText("출시일 미정")).toBeNull();
+  });
+
+  it("falls back to title initials when a cover image fails", () => {
+    const game = {
+      ...mockGames[0],
+      title: "Broken Cover",
+      imageUrl: "https://example.invalid/missing.jpg"
+    };
+    const { container } = render(<GameCard game={game} />);
+
+    const image = container.querySelector("img");
+
+    if (!image) {
+      throw new Error("Expected image before load failure.");
+    }
+
+    fireEvent.error(image);
+
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByText("BR")).toBeTruthy();
   });
 });

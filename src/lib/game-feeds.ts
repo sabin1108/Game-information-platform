@@ -20,8 +20,13 @@ import {
 import { isItadConfigured } from "@/lib/env";
 import { getItadDeals, getItadPopular } from "@/lib/itad";
 import { mockGames } from "@/lib/mock-data";
+import { normalizeGameReleaseStatuses } from "@/lib/release-status";
 import { searchGames } from "@/lib/search";
-import { refreshSteamPrices } from "@/lib/steam-prices";
+import { enrichSteamMetadata, refreshSteamPrices } from "@/lib/steam-prices";
+import {
+  getSteamPopularTags,
+  normalizeSteamPopularTagKey
+} from "@/lib/steam-popular-tags";
 import type { SearchCacheStatus } from "@/lib/search-cache";
 import type { GameSummary, StoreCode, StorePrice } from "@/types/game";
 
@@ -29,6 +34,9 @@ export type GameFeed = {
   source: "itad" | "mock";
   games: GameSummary[];
   warning?: string;
+  nextOffset?: number;
+  hasMore?: boolean;
+  tagOptions?: string[];
   cacheStatus?: SearchCacheStatus;
   dealCacheStatus?: DealCacheStatus;
   dealCacheTtlSeconds?: number;
@@ -74,11 +82,11 @@ function normalizeStore(value: string | undefined): StoreCode | undefined {
 }
 
 function normalizeSort(value: string | undefined): DealSort {
-  if (value === "price" || value === "reviews") {
+  if (value === "discount" || value === "price") {
     return value;
   }
 
-  return "discount";
+  return "reviews";
 }
 
 function normalizeTag(value: string | undefined) {
@@ -87,13 +95,39 @@ function normalizeTag(value: string | undefined) {
   return tag ? tag : undefined;
 }
 
+const dealTagAliases: Record<string, string[]> = {
+  roguelike: ["roguelike", "rogue-like", "action roguelike", "roguelite", "rogue-lite"],
+  strategy: ["strategy", "turn-based strategy", "grand strategy", "4x", "tactical"],
+  puzzle: ["puzzle", "logic", "hidden object"],
+  automation: ["automation", "base building", "base-building", "resource management"]
+};
+
+function normalizeTagKey(tag: string) {
+  return normalizeSteamPopularTagKey(tag);
+}
+
+function isLikelyBaseGame(game: GameSummary) {
+  const title = game.title.toLowerCase();
+
+  return ![
+    "bundle",
+    "pack",
+    "dlc",
+    "soundtrack",
+    "edition upgrade",
+    "deluxe content"
+  ].some((blocked) => title.includes(blocked));
+}
+
 export function normalizeDealFilters(options: {
   country?: string;
+  offset?: number;
   limit?: number;
   minDiscount?: number;
   maxPrice?: number;
   maxPriceCents?: number;
   store?: string;
+  tag?: string;
   sort?: string;
 } = {}): DealFilterState {
   const maxPriceCents = typeof options.maxPriceCents === "number"
@@ -104,10 +138,12 @@ export function normalizeDealFilters(options: {
 
   return {
     country: (options.country ?? "KR").trim().toUpperCase(),
-    limit: clampNumber(options.limit, 40, 1, 100),
+    offset: clampNumber(options.offset, 0, 0, 5_000),
+    limit: clampNumber(options.limit, 40, 1, 200),
     minDiscount: clampNumber(options.minDiscount, 1, 0, 100),
     maxPriceCents: maxPriceCents && maxPriceCents > 0 ? maxPriceCents : undefined,
     store: normalizeStore(options.store),
+    tag: normalizeTag(options.tag),
     sort: normalizeSort(options.sort)
   };
 }
@@ -142,6 +178,18 @@ function priceMatchesFilters(price: StorePrice, filters: DealFilterState) {
   return true;
 }
 
+function gameMatchesTag(game: GameSummary, filters: DealFilterState) {
+  const tag = filters.tag ? normalizeTagKey(filters.tag) : undefined;
+
+  if (!tag) {
+    return true;
+  }
+
+  const acceptedTags = new Set([tag, ...(dealTagAliases[tag] ?? []).map(normalizeTagKey)]);
+
+  return game.tags.some((item) => acceptedTags.has(normalizeTagKey(item)));
+}
+
 function getBestDiscount(game: GameSummary) {
   return Math.max(0, ...game.prices.map((price) => price.discountPercent));
 }
@@ -163,6 +211,7 @@ function getReviewSortScore(game: GameSummary) {
 
 function applyDealFilters(games: GameSummary[], filters: DealFilterState) {
   const filtered = games
+    .filter((game) => gameMatchesTag(game, filters))
     .map((game) => ({
       ...game,
       prices: dedupePrices(game.prices.filter((price) => priceMatchesFilters(price, filters)))
@@ -194,6 +243,31 @@ function applyDealFilters(games: GameSummary[], filters: DealFilterState) {
 
     return a.title.localeCompare(b.title);
   }).slice(0, filters.limit);
+}
+
+function collectTagOptions() {
+  return getSteamPopularTags();
+}
+
+function getPopularityScore(game: GameSummary) {
+  return game.steamReviewCount ?? 0;
+}
+
+async function getExpandedDealCandidates(filters: DealFilterState, sourceGames: GameSummary[]) {
+  const dealPages = await Promise.all([0, 200, 400].map((offset) =>
+    getItadDeals({
+      country: filters.country,
+      offset,
+      limit: 200,
+      minDiscount: filters.minDiscount
+    })
+  ));
+  const dealGames = dealPages.flatMap((page) => page.games).filter(isLikelyBaseGame);
+
+  return dedupeGames([
+    ...sourceGames,
+    ...await enrichSteamMetadata(dealGames, filters.country)
+  ]).sort((a, b) => getPopularityScore(b) - getPopularityScore(a));
 }
 
 function getPriceDedupKey(price: StorePrice) {
@@ -279,27 +353,31 @@ function applyReleaseFilters(games: GameSummary[], filters: ReleaseFilterState) 
 
 export async function getPopularFeed(limit = 24): Promise<GameFeed> {
   if (!isItadConfigured()) {
-    return { source: "mock", games: await refreshSteamPrices(mockGames.slice(0, limit)) };
+    return { source: "mock", games: normalizeGameReleaseStatuses(await refreshSteamPrices(mockGames.slice(0, limit))) };
   }
 
   try {
-    return { source: "itad", games: await withTimeout(getItadPopular(limit), 5000, "ITAD popular feed timed out.") };
+    const games = await withTimeout(getItadPopular(limit), 5000, "ITAD popular feed timed out.");
+
+    return { source: "itad", games: normalizeGameReleaseStatuses(await enrichSteamMetadata(games)) };
   } catch (error) {
     return {
       source: "mock",
       warning: getWarning(error),
-      games: await refreshSteamPrices(mockGames.slice(0, limit))
+      games: normalizeGameReleaseStatuses(await refreshSteamPrices(mockGames.slice(0, limit)))
     };
   }
 }
 
 export async function getDealFeed(options: {
   country?: string;
+  offset?: number;
   limit?: number;
   minDiscount?: number;
   maxPrice?: number;
   maxPriceCents?: number;
   store?: string;
+  tag?: string;
   sort?: string;
 } = {}): Promise<GameFeed> {
   const filters = normalizeDealFilters(options);
@@ -312,6 +390,9 @@ export async function getDealFeed(options: {
       source: cached.source,
       warning: cached.warning,
       games: cached.games,
+      nextOffset: cached.nextOffset,
+      hasMore: cached.hasMore,
+      tagOptions: cached.tagOptions,
       filters,
       dealCacheStatus: "hit",
       dealCacheTtlSeconds: cached.ttlSeconds
@@ -322,25 +403,63 @@ export async function getDealFeed(options: {
 
   if (!isItadConfigured()) {
     const refreshedGames = await refreshSteamPrices(mockGames, filters.country);
+    const sourceGames = dedupeGames(refreshedGames);
 
     payload = {
       source: "mock",
-      games: applyDealFilters(dedupeGames(refreshedGames), filters)
+      games: normalizeGameReleaseStatuses(applyDealFilters(sourceGames, filters)),
+      nextOffset: filters.offset + filters.limit,
+      hasMore: false,
+      tagOptions: collectTagOptions()
     };
   } else {
     try {
+      const usesPopularityFeed = filters.sort === "reviews";
+      const popularRequestLimit = Math.min(500, Math.max(filters.limit * 5, 300));
+      const itadPage = usesPopularityFeed
+        ? {
+            games: await withTimeout(
+              getItadPopular({
+                country: filters.country,
+                offset: filters.offset,
+                limit: popularRequestLimit
+              }),
+              7000,
+              "ITAD popular deals feed timed out."
+            ),
+            nextOffset: filters.offset + popularRequestLimit,
+            hasMore: true
+          }
+        : await withTimeout(getItadDeals(filters), 5000, "ITAD deals feed timed out.");
+      const popularCandidates = dedupeGames(itadPage.games)
+        .filter(isLikelyBaseGame)
+        .sort((a, b) => getPopularityScore(b) - getPopularityScore(a));
+      const metadataLimit = usesPopularityFeed
+        ? Math.min(popularCandidates.length, popularRequestLimit)
+        : popularCandidates.length;
+      const sourceGames = dedupeGames(await enrichSteamMetadata(popularCandidates.slice(0, metadataLimit), filters.country))
+        .sort((a, b) => getPopularityScore(b) - getPopularityScore(a));
+      const filterSourceGames = filters.tag && usesPopularityFeed
+        ? await getExpandedDealCandidates(filters, sourceGames)
+        : sourceGames;
+
       payload = {
         source: "itad",
-        games: applyDealFilters(
-          dedupeGames(await withTimeout(getItadDeals(filters), 5000, "ITAD deals feed timed out.")),
-          filters
-        )
+        games: normalizeGameReleaseStatuses(applyDealFilters(filterSourceGames, filters)),
+        nextOffset: itadPage.nextOffset ?? filters.offset + filters.limit,
+        hasMore: itadPage.hasMore ?? sourceGames.length >= filters.limit,
+        tagOptions: collectTagOptions()
       };
     } catch (error) {
+      const sourceGames = dedupeGames(await refreshSteamPrices(mockGames, filters.country));
+
       payload = {
         source: "mock",
         warning: getWarning(error),
-        games: applyDealFilters(dedupeGames(await refreshSteamPrices(mockGames, filters.country)), filters)
+        games: normalizeGameReleaseStatuses(applyDealFilters(sourceGames, filters)),
+        nextOffset: filters.offset + filters.limit,
+        hasMore: false,
+        tagOptions: collectTagOptions()
       };
     }
   }
@@ -380,7 +499,7 @@ export async function getReleaseFeed(options: {
   const refreshedGames = await refreshSteamPrices(mockGames, filters.country);
   const payload: GameFeed = {
     source: provider,
-    games: applyReleaseFilters(refreshedGames, filters)
+    games: applyReleaseFilters(normalizeGameReleaseStatuses(refreshedGames), filters)
   };
 
   setReleaseCache(cacheKey, payload);
@@ -402,7 +521,7 @@ export async function searchGameFeed(query: string, options: {
   return {
     source: result.source,
     warning: result.warning,
-    games: result.games,
+    games: normalizeGameReleaseStatuses(result.games),
     cacheStatus: result.cache.status
   };
 }

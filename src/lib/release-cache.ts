@@ -3,6 +3,7 @@ import type { StoreCode } from "@/types/game";
 
 const RELEASE_CACHE_TTL_MS = 5 * 60 * 1000;
 const RELEASE_CACHE_MAX_ENTRIES = 60;
+const RELEASE_CACHE_SCHEMA_VERSION = "v2";
 
 export type ReleaseCacheStatus = "hit" | "miss";
 
@@ -21,6 +22,7 @@ const releaseCache = new Map<string, ReleaseCacheEntry>();
 
 export function getReleaseCacheKey(provider: GameFeed["source"], filters: ReleaseFilterState) {
   return [
+    RELEASE_CACHE_SCHEMA_VERSION,
     provider,
     filters.country,
     String(filters.limit),
