@@ -210,11 +210,19 @@ Scheduler calls /api/jobs/generate-ai-insights
   -> Surface insights on public home or watchlist dashboard
 ```
 
-The first implementation of `/api/jobs/generate-ai-insights` is a route foundation only. It
-authenticates the caller, records run timing when Supabase admin env is configured, returns a
-dry-run success in local environments without admin env, and leaves candidate detection plus AI
-summarization to later slices. Job failures are returned from the job route only; public feed,
-search, deals, releases, and watchlist APIs must keep working independently.
+`/api/jobs/generate-ai-insights` authenticates the caller, records run timing when Supabase
+admin env is configured, returns a dry-run success in local environments without admin env, and
+keeps job failures isolated from public feed, search, deals, releases, and watchlist APIs.
+
+Current deterministic candidate types:
+
+- `historical_low`: stored snapshot is marked historical low and has a meaningful discount.
+- `deep_discount`: stored snapshot discount crosses the deep-discount threshold.
+- `high_review_discount`: stored review count, positive ratio, and discount all cross quality thresholds.
+
+Current summarization path uses a mock evidence-only summarizer so tests can verify the full
+storage flow without an external AI API key. The prompt is built from evidence JSON only, and
+the saved `ai_game_insights.evidence` keeps the exact snapshot fields used by the summary.
 
 Good first AI tasks:
 
