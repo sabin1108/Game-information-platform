@@ -6,7 +6,9 @@ vi.mock("server-only", () => ({}));
 async function loadDealsRoute() {
   vi.resetModules();
   const cache = await import("@/lib/deal-cache");
+  const rateLimit = await import("@/lib/rate-limit");
   cache.clearDealCacheForTests();
+  rateLimit.clearPublicApiRateLimitForTests();
 
   return import("@/app/api/deals/route");
 }
@@ -309,5 +311,74 @@ describe("deals API route", () => {
         }
       ]
     });
+  });
+
+  it("returns stale cached deals when ITAD fails after the fresh TTL", async () => {
+    vi.stubEnv("ITAD_API_KEY", "server-only-secret");
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      throw new Error("ITAD outage");
+    }));
+
+    vi.resetModules();
+    const cache = await import("@/lib/deal-cache");
+    const rateLimit = await import("@/lib/rate-limit");
+    const filters = {
+      country: "KR",
+      offset: 0,
+      limit: 40,
+      minDiscount: 20,
+      store: "steam" as const,
+      sort: "reviews" as const
+    };
+    const cacheKey = cache.getDealCacheKey("itad", filters);
+
+    cache.clearDealCacheForTests();
+    rateLimit.clearPublicApiRateLimitForTests();
+    cache.setDealCache(
+      cacheKey,
+      {
+        source: "itad",
+        games: [
+          {
+            id: "stale-deal",
+            slug: "stale-deal",
+            title: "Stale Deal",
+            imageUrl: "",
+            tags: ["Action"],
+            prices: [
+              {
+                store: "steam",
+                storeName: "Steam",
+                currency: "KRW",
+                currentPriceCents: 1000,
+                regularPriceCents: 2000,
+                discountPercent: 50,
+                isHistoricalLow: true,
+                url: "https://store.steampowered.com/app/1/"
+              }
+            ],
+            releaseStatus: "released"
+          }
+        ],
+        nextOffset: 40,
+        hasMore: true,
+        tagOptions: ["Action"]
+      },
+      Date.now() - 6 * 60 * 1000
+    );
+
+    const { GET } = await import("@/app/api/deals/route");
+    const response = await GET(new NextRequest("http://localhost:3000/api/deals?store=steam&minDiscount=20&sort=reviews"));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("X-Deals-Cache")).toBe("stale");
+    expect(body.cache.status).toBe("stale");
+    expect(body.warning).toBe("ITAD outage");
+    expect(body.data).toEqual([
+      expect.objectContaining({
+        title: "Stale Deal"
+      })
+    ]);
   });
 });

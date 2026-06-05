@@ -6,6 +6,7 @@ import { searchMockGames } from "@/lib/mock-data";
 import {
   getSearchCache,
   getSearchCacheKey,
+  getStaleSearchCache,
   normalizeSearchQuery,
   searchCacheConfig,
   setSearchCache,
@@ -93,6 +94,7 @@ export async function searchGames(query: string, options: SearchFilters = {}): P
     store: options.store
   });
   const cached = getSearchCache(cacheKey);
+  const stale = getStaleSearchCache(cacheKey);
 
   if (cached) {
     return {
@@ -123,6 +125,18 @@ export async function searchGames(query: string, options: SearchFilters = {}): P
         )
       };
     } catch (error) {
+      if (stale) {
+        return {
+          ...stale,
+          warning: getWarning(error),
+          cache: {
+            status: "stale",
+            key: cacheKey,
+            ttlSeconds: stale.ttlSeconds
+          }
+        };
+      }
+
       payload = {
         source: "mock",
         query: normalizedQuery,

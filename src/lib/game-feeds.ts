@@ -4,6 +4,7 @@ import {
   dealCacheConfig,
   getDealCache,
   getDealCacheKey,
+  getStaleDealCache,
   setDealCache,
   type DealCacheStatus,
   type DealFilterState,
@@ -12,6 +13,7 @@ import {
 import {
   getReleaseCache,
   getReleaseCacheKey,
+  getStaleReleaseCache,
   releaseCacheConfig,
   setReleaseCache,
   type ReleaseCacheStatus,
@@ -20,6 +22,14 @@ import {
 import { isItadConfigured } from "@/lib/env";
 import { getItadDeals, getItadPopular } from "@/lib/itad";
 import { mockGames } from "@/lib/mock-data";
+import {
+  getPopularCache,
+  getPopularCacheKey,
+  getStalePopularCache,
+  popularCacheConfig,
+  setPopularCache,
+  type PopularCacheStatus
+} from "@/lib/popular-cache";
 import { normalizeGameReleaseStatuses } from "@/lib/release-status";
 import { searchGames } from "@/lib/search";
 import { enrichSteamMetadata, refreshSteamPrices } from "@/lib/steam-prices";
@@ -38,6 +48,8 @@ export type GameFeed = {
   hasMore?: boolean;
   tagOptions?: string[];
   cacheStatus?: SearchCacheStatus;
+  popularCacheStatus?: PopularCacheStatus;
+  popularCacheTtlSeconds?: number;
   dealCacheStatus?: DealCacheStatus;
   dealCacheTtlSeconds?: number;
   releaseCacheStatus?: ReleaseCacheStatus;
@@ -351,20 +363,73 @@ function applyReleaseFilters(games: GameSummary[], filters: ReleaseFilterState) 
     .slice(0, filters.limit);
 }
 
-export async function getPopularFeed(limit = 24): Promise<GameFeed> {
+export async function getPopularFeed(limit = 24, country = "KR"): Promise<GameFeed> {
+  const normalizedCountry = country.trim().toUpperCase();
+  const provider = isItadConfigured() ? "itad" : "mock";
+  const cacheKey = getPopularCacheKey(provider, {
+    country: normalizedCountry,
+    limit
+  });
+  const cached = getPopularCache(cacheKey);
+
+  if (cached) {
+    return {
+      source: cached.source,
+      warning: cached.warning,
+      games: cached.games,
+      popularCacheStatus: "hit",
+      popularCacheTtlSeconds: cached.ttlSeconds
+    };
+  }
+
   if (!isItadConfigured()) {
-    return { source: "mock", games: normalizeGameReleaseStatuses(await refreshSteamPrices(mockGames.slice(0, limit))) };
+    const payload: GameFeed = {
+      source: "mock",
+      games: normalizeGameReleaseStatuses(await refreshSteamPrices(mockGames.slice(0, limit), normalizedCountry))
+    };
+
+    setPopularCache(cacheKey, payload);
+
+    return {
+      ...payload,
+      popularCacheStatus: "miss",
+      popularCacheTtlSeconds: popularCacheConfig.ttlSeconds
+    };
   }
 
   try {
     const games = await withTimeout(getItadPopular(limit), 5000, "ITAD popular feed timed out.");
+    const payload: GameFeed = {
+      source: "itad",
+      games: normalizeGameReleaseStatuses(await enrichSteamMetadata(games, normalizedCountry))
+    };
 
-    return { source: "itad", games: normalizeGameReleaseStatuses(await enrichSteamMetadata(games)) };
+    setPopularCache(cacheKey, payload);
+
+    return {
+      ...payload,
+      popularCacheStatus: "miss",
+      popularCacheTtlSeconds: popularCacheConfig.ttlSeconds
+    };
   } catch (error) {
+    const stale = getStalePopularCache(cacheKey);
+
+    if (stale) {
+      return {
+        source: stale.source,
+        warning: getWarning(error),
+        games: stale.games,
+        popularCacheStatus: "stale",
+        popularCacheTtlSeconds: stale.ttlSeconds
+      };
+    }
+
     return {
       source: "mock",
       warning: getWarning(error),
-      games: normalizeGameReleaseStatuses(await refreshSteamPrices(mockGames.slice(0, limit)))
+      games: normalizeGameReleaseStatuses(await refreshSteamPrices(mockGames.slice(0, limit), normalizedCountry)),
+      popularCacheStatus: "miss",
+      popularCacheTtlSeconds: popularCacheConfig.ttlSeconds
     };
   }
 }
@@ -384,6 +449,7 @@ export async function getDealFeed(options: {
   const provider = isItadConfigured() ? "itad" : "mock";
   const cacheKey = getDealCacheKey(provider, filters);
   const cached = getDealCache(cacheKey);
+  const stale = getStaleDealCache(cacheKey);
 
   if (cached) {
     return {
@@ -451,6 +517,20 @@ export async function getDealFeed(options: {
         tagOptions: collectTagOptions()
       };
     } catch (error) {
+      if (stale) {
+        return {
+          source: stale.source,
+          warning: getWarning(error),
+          games: stale.games,
+          nextOffset: stale.nextOffset,
+          hasMore: stale.hasMore,
+          tagOptions: stale.tagOptions,
+          filters,
+          dealCacheStatus: "stale",
+          dealCacheTtlSeconds: stale.ttlSeconds
+        };
+      }
+
       const sourceGames = dedupeGames(await refreshSteamPrices(mockGames, filters.country));
 
       payload = {
@@ -484,6 +564,7 @@ export async function getReleaseFeed(options: {
   const provider = "mock";
   const cacheKey = getReleaseCacheKey(provider, filters);
   const cached = getReleaseCache(cacheKey);
+  const stale = getStaleReleaseCache(cacheKey);
 
   if (cached) {
     return {
@@ -496,11 +577,28 @@ export async function getReleaseFeed(options: {
     };
   }
 
-  const refreshedGames = await refreshSteamPrices(mockGames, filters.country);
-  const payload: GameFeed = {
-    source: provider,
-    games: applyReleaseFilters(normalizeGameReleaseStatuses(refreshedGames), filters)
-  };
+  let payload: GameFeed;
+
+  try {
+    const refreshedGames = await refreshSteamPrices(mockGames, filters.country);
+    payload = {
+      source: provider,
+      games: applyReleaseFilters(normalizeGameReleaseStatuses(refreshedGames), filters)
+    };
+  } catch (error) {
+    if (stale) {
+      return {
+        source: stale.source,
+        warning: getWarning(error),
+        games: stale.games,
+        releaseFilters: filters,
+        releaseCacheStatus: "stale",
+        releaseCacheTtlSeconds: stale.ttlSeconds
+      };
+    }
+
+    throw error;
+  }
 
   setReleaseCache(cacheKey, payload);
 

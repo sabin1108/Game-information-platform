@@ -1,10 +1,11 @@
 import type { GameSummary } from "@/types/game";
 
 const SEARCH_CACHE_TTL_MS = 5 * 60 * 1000;
+const SEARCH_CACHE_STALE_TTL_MS = 6 * 60 * 60 * 1000;
 const SEARCH_CACHE_MAX_ENTRIES = 100;
 
 export type SearchSource = "itad" | "mock";
-export type SearchCacheStatus = "hit" | "miss";
+export type SearchCacheStatus = "hit" | "miss" | "stale";
 
 export type SearchCacheKeyInput = {
   query: string;
@@ -25,6 +26,7 @@ export type SearchCachePayload = {
 
 type SearchCacheEntry = SearchCachePayload & {
   expiresAt: number;
+  staleUntil: number;
 };
 
 const searchCache = new Map<string, SearchCacheEntry>();
@@ -52,7 +54,6 @@ export function getSearchCache(key: string, now = Date.now()) {
   }
 
   if (entry.expiresAt <= now) {
-    searchCache.delete(key);
     return null;
   }
 
@@ -69,10 +70,36 @@ export function getSearchCache(key: string, now = Date.now()) {
   };
 }
 
+export function getStaleSearchCache(key: string, now = Date.now()) {
+  const entry = searchCache.get(key);
+
+  if (!entry) {
+    return null;
+  }
+
+  if (entry.staleUntil <= now) {
+    searchCache.delete(key);
+    return null;
+  }
+
+  searchCache.delete(key);
+  searchCache.set(key, entry);
+
+  return {
+    source: entry.source,
+    query: entry.query,
+    normalized: entry.normalized,
+    games: entry.games,
+    warning: entry.warning,
+    ttlSeconds: Math.max(0, Math.ceil((entry.staleUntil - now) / 1000))
+  };
+}
+
 export function setSearchCache(key: string, payload: SearchCachePayload, now = Date.now()) {
   searchCache.set(key, {
     ...payload,
-    expiresAt: now + SEARCH_CACHE_TTL_MS
+    expiresAt: now + SEARCH_CACHE_TTL_MS,
+    staleUntil: now + SEARCH_CACHE_STALE_TTL_MS
   });
 
   while (searchCache.size > SEARCH_CACHE_MAX_ENTRIES) {
@@ -92,5 +119,6 @@ export function clearSearchCacheForTests() {
 
 export const searchCacheConfig = {
   ttlSeconds: SEARCH_CACHE_TTL_MS / 1000,
+  staleTtlSeconds: SEARCH_CACHE_STALE_TTL_MS / 1000,
   maxEntries: SEARCH_CACHE_MAX_ENTRIES
 };

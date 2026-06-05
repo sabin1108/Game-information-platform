@@ -38,12 +38,16 @@ async function popularHandler(request: NextRequest) {
   return NextResponse.json({
     source: feed.source,
     warning: feed.warning,
+    cache: {
+      status: feed.popularCacheStatus ?? "miss",
+      ttlSeconds: feed.popularCacheTtlSeconds
+    },
     data: data.slice(offset, offset + limit),
     nextOffset: offset + limit,
     hasMore: data.length > offset + limit
   }, {
     headers: {
-      "X-Cache": feed.cacheStatus ?? "miss"
+      "X-Cache": feed.popularCacheStatus ?? "miss"
     }
   });
 }

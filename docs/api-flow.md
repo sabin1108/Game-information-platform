@@ -307,10 +307,49 @@ Client JS initial route budget: measured with bundle analyzer
 
 ### MVP
 
-- Cache public API responses by query, store, country, and filter.
+- Cache public API responses by query, store, country, pagination, and filter.
 - Use pagination for deals and releases.
 - Use latest price snapshot lookup instead of loading all historical snapshots.
 - Use stale data if external API fails.
+
+### Stale-Safe Cache Policy
+
+Current implementation uses process-local in-memory cache for public read routes. This is intentional
+for the MVP because it adds no new paid infrastructure and keeps local/dev/test behavior deterministic.
+The tradeoff is that cache state is per server process; deploys, cold starts, and multi-instance
+serverless traffic do not share buckets. If production traffic proves the need, move the same key
+schema to Redis/KV before increasing TTLs.
+
+Fresh TTL:
+
+- `/api/public/popular`: 5 minutes
+- `/api/search`: 5 minutes
+- `/api/deals`: 5 minutes
+- `/api/releases`: 5 minutes
+
+Stale retention TTL:
+
+- All public read caches keep expired entries for 6 hours.
+- Fresh cache hits do not call external APIs.
+- If ITAD or Steam enrichment fails after the fresh TTL, the route can return the last cached payload
+  with cache status `stale` instead of falling back to invented or unverified prices.
+
+Cache key dimensions:
+
+- Popular feed: provider, country, limit.
+- Search: provider, normalized query, country, limit, tag, store.
+- Deals: provider, country, offset, limit, min discount, max price, store, tag, sort.
+- Releases: provider, country, limit, tag, store.
+
+Observable cache metadata:
+
+- `/api/public/popular`: `X-Cache`, response `cache.status`.
+- `/api/search`: `X-Search-Cache`, response `cache.status`.
+- `/api/deals`: `X-Deals-Cache`, response `cache.status`.
+- `/api/releases`: `X-Releases-Cache`, response `cache.status`.
+
+Cache status values are `miss`, `hit`, and `stale`. `stale` means the payload came from a previously
+verified cache entry after the fresh TTL expired because the external refresh path failed.
 
 ### Scale Extension
 

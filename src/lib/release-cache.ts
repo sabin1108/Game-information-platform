@@ -2,10 +2,11 @@ import type { GameFeed } from "@/lib/game-feeds";
 import type { StoreCode } from "@/types/game";
 
 const RELEASE_CACHE_TTL_MS = 5 * 60 * 1000;
+const RELEASE_CACHE_STALE_TTL_MS = 6 * 60 * 60 * 1000;
 const RELEASE_CACHE_MAX_ENTRIES = 60;
-const RELEASE_CACHE_SCHEMA_VERSION = "v2";
+const RELEASE_CACHE_SCHEMA_VERSION = "v3";
 
-export type ReleaseCacheStatus = "hit" | "miss";
+export type ReleaseCacheStatus = "hit" | "miss" | "stale";
 
 export type ReleaseFilterState = {
   country: string;
@@ -16,6 +17,7 @@ export type ReleaseFilterState = {
 
 type ReleaseCacheEntry = GameFeed & {
   expiresAt: number;
+  staleUntil: number;
 };
 
 const releaseCache = new Map<string, ReleaseCacheEntry>();
@@ -39,7 +41,6 @@ export function getReleaseCache(key: string, now = Date.now()) {
   }
 
   if (entry.expiresAt <= now) {
-    releaseCache.delete(key);
     return null;
   }
 
@@ -54,10 +55,34 @@ export function getReleaseCache(key: string, now = Date.now()) {
   };
 }
 
+export function getStaleReleaseCache(key: string, now = Date.now()) {
+  const entry = releaseCache.get(key);
+
+  if (!entry) {
+    return null;
+  }
+
+  if (entry.staleUntil <= now) {
+    releaseCache.delete(key);
+    return null;
+  }
+
+  releaseCache.delete(key);
+  releaseCache.set(key, entry);
+
+  return {
+    source: entry.source,
+    games: entry.games,
+    warning: entry.warning,
+    ttlSeconds: Math.max(0, Math.ceil((entry.staleUntil - now) / 1000))
+  };
+}
+
 export function setReleaseCache(key: string, payload: GameFeed, now = Date.now()) {
   releaseCache.set(key, {
     ...payload,
-    expiresAt: now + RELEASE_CACHE_TTL_MS
+    expiresAt: now + RELEASE_CACHE_TTL_MS,
+    staleUntil: now + RELEASE_CACHE_STALE_TTL_MS
   });
 
   while (releaseCache.size > RELEASE_CACHE_MAX_ENTRIES) {
@@ -77,5 +102,6 @@ export function clearReleaseCacheForTests() {
 
 export const releaseCacheConfig = {
   ttlSeconds: RELEASE_CACHE_TTL_MS / 1000,
+  staleTtlSeconds: RELEASE_CACHE_STALE_TTL_MS / 1000,
   maxEntries: RELEASE_CACHE_MAX_ENTRIES
 };

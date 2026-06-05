@@ -190,4 +190,58 @@ describe("search API route", () => {
       }
     });
   });
+
+  it("returns stale cached search data when ITAD fails after the fresh TTL", async () => {
+    vi.stubEnv("ITAD_API_KEY", "server-only-secret");
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      throw new Error("ITAD outage");
+    }));
+
+    vi.resetModules();
+    const cache = await import("@/lib/search-cache");
+    const rateLimit = await import("@/lib/rate-limit");
+    const cacheKey = cache.getSearchCacheKey({
+      provider: "itad",
+      query: "portal",
+      country: "US",
+      limit: 40
+    });
+
+    cache.clearSearchCacheForTests();
+    rateLimit.clearPublicApiRateLimitForTests();
+    cache.setSearchCache(
+      cacheKey,
+      {
+        source: "itad",
+        query: "portal",
+        normalized: true,
+        games: [
+          {
+            id: "portal-2",
+            slug: "portal-2",
+            title: "Portal 2",
+            imageUrl: "",
+            tags: ["Puzzle"],
+            prices: [],
+            releaseStatus: "released"
+          }
+        ]
+      },
+      Date.now() - 6 * 60 * 1000
+    );
+
+    const { GET } = await import("@/app/api/search/route");
+    const response = await GET(new NextRequest("http://localhost:3000/api/search?q=portal&country=US"));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("X-Search-Cache")).toBe("stale");
+    expect(body.cache.status).toBe("stale");
+    expect(body.warning).toBe("ITAD outage");
+    expect(body.data).toEqual([
+      expect.objectContaining({
+        title: "Portal 2"
+      })
+    ]);
+  });
 });

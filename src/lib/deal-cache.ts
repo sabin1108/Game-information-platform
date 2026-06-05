@@ -2,11 +2,12 @@ import type { StoreCode } from "@/types/game";
 import type { GameFeed } from "@/lib/game-feeds";
 
 const DEAL_CACHE_TTL_MS = 5 * 60 * 1000;
+const DEAL_CACHE_STALE_TTL_MS = 6 * 60 * 60 * 1000;
 const DEAL_CACHE_MAX_ENTRIES = 80;
-const DEAL_CACHE_SCHEMA_VERSION = "v9";
+const DEAL_CACHE_SCHEMA_VERSION = "v10";
 
 export type DealSort = "discount" | "price" | "reviews";
-export type DealCacheStatus = "hit" | "miss";
+export type DealCacheStatus = "hit" | "miss" | "stale";
 
 export type DealFilterState = {
   country: string;
@@ -21,6 +22,7 @@ export type DealFilterState = {
 
 type DealCacheEntry = GameFeed & {
   expiresAt: number;
+  staleUntil: number;
 };
 
 const dealCache = new Map<string, DealCacheEntry>();
@@ -48,7 +50,6 @@ export function getDealCache(key: string, now = Date.now()) {
   }
 
   if (entry.expiresAt <= now) {
-    dealCache.delete(key);
     return null;
   }
 
@@ -66,10 +67,37 @@ export function getDealCache(key: string, now = Date.now()) {
   };
 }
 
+export function getStaleDealCache(key: string, now = Date.now()) {
+  const entry = dealCache.get(key);
+
+  if (!entry) {
+    return null;
+  }
+
+  if (entry.staleUntil <= now) {
+    dealCache.delete(key);
+    return null;
+  }
+
+  dealCache.delete(key);
+  dealCache.set(key, entry);
+
+  return {
+    source: entry.source,
+    games: entry.games,
+    warning: entry.warning,
+    nextOffset: entry.nextOffset,
+    hasMore: entry.hasMore,
+    tagOptions: entry.tagOptions,
+    ttlSeconds: Math.max(0, Math.ceil((entry.staleUntil - now) / 1000))
+  };
+}
+
 export function setDealCache(key: string, payload: GameFeed, now = Date.now()) {
   dealCache.set(key, {
     ...payload,
-    expiresAt: now + DEAL_CACHE_TTL_MS
+    expiresAt: now + DEAL_CACHE_TTL_MS,
+    staleUntil: now + DEAL_CACHE_STALE_TTL_MS
   });
 
   while (dealCache.size > DEAL_CACHE_MAX_ENTRIES) {
@@ -89,5 +117,6 @@ export function clearDealCacheForTests() {
 
 export const dealCacheConfig = {
   ttlSeconds: DEAL_CACHE_TTL_MS / 1000,
+  staleTtlSeconds: DEAL_CACHE_STALE_TTL_MS / 1000,
   maxEntries: DEAL_CACHE_MAX_ENTRIES
 };
