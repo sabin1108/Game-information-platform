@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getPopularFeed } from "@/lib/game-feeds";
 import { mockGames } from "@/lib/mock-data";
 import { withApiMonitoring } from "@/lib/monitoring/api";
+import { applyPublicApiRateLimit } from "@/lib/rate-limit";
 import type { GameSummary } from "@/types/game";
 
 function clamp(value: number, fallback: number, min: number, max: number) {
@@ -13,6 +14,12 @@ function clamp(value: number, fallback: number, min: number, max: number) {
 }
 
 async function popularHandler(request: NextRequest) {
+  const rateLimited = applyPublicApiRateLimit(request, "/api/public/popular");
+
+  if (rateLimited) {
+    return rateLimited;
+  }
+
   const offset = clamp(Number(request.nextUrl.searchParams.get("offset") ?? "0"), 0, 0, 500);
   const limit = clamp(Number(request.nextUrl.searchParams.get("limit") ?? "24"), 24, 1, 48);
   const tag = request.nextUrl.searchParams.get("tag")?.trim().toLowerCase();

@@ -1,10 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getDealFeed } from "@/lib/game-feeds";
 import { withApiMonitoring } from "@/lib/monitoring/api";
+import { applyPublicApiRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 async function dealsHandler(request: NextRequest) {
+  const rateLimited = applyPublicApiRateLimit(request, "/api/deals");
+
+  if (rateLimited) {
+    return rateLimited;
+  }
+
   const country = request.nextUrl.searchParams.get("country") ?? "KR";
   const offset = Number(request.nextUrl.searchParams.get("offset") ?? "0");
   const limit = Number(request.nextUrl.searchParams.get("limit") ?? "40");

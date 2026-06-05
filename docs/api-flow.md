@@ -23,6 +23,9 @@ NEXT_PUBLIC_POSTHOG_TOKEN
 NEXT_PUBLIC_POSTHOG_HOST
 SENTRY_DSN
 JOB_SECRET
+PUBLIC_API_RATE_LIMIT_ENABLED
+PUBLIC_API_RATE_LIMIT_MAX_REQUESTS
+PUBLIC_API_RATE_LIMIT_WINDOW_SECONDS
 VERCEL_ENV
 ```
 
@@ -43,6 +46,19 @@ GET /api/releases?stores=steam,epic&country=KR&status=upcoming
 POST /api/events
 GET /api/experiments/bootstrap
 ```
+
+Public feed/search routes apply a fixed-window in-memory rate limit before external API work starts.
+The limiter keys by `gdw_anonymous_id` cookie when present, otherwise by forwarded IP headers. Default
+production setting is 120 requests per 60 seconds per route and identity; local development defaults to
+240 per 60 seconds so debugging and Playwright runs are less noisy. Operators can tune
+`PUBLIC_API_RATE_LIMIT_MAX_REQUESTS`, `PUBLIC_API_RATE_LIMIT_WINDOW_SECONDS`, or set
+`PUBLIC_API_RATE_LIMIT_ENABLED=false` for local troubleshooting.
+
+When the limit is exceeded, routes return `429` with `Retry-After`, `X-RateLimit-Limit`,
+`X-RateLimit-Remaining`, `X-RateLimit-Reset`, and JSON `rateLimit` metadata. This protects ITAD and
+server work, but the current MVP limiter is process-local. In serverless or multi-instance deployments,
+each instance has its own bucket; use Redis/KV for a global production limiter when traffic evidence
+requires it.
 
 ### Authenticated Routes
 

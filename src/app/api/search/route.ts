@@ -1,10 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { withApiMonitoring } from "@/lib/monitoring/api";
+import { applyPublicApiRateLimit } from "@/lib/rate-limit";
 import { searchGames } from "@/lib/search";
 
 export const dynamic = "force-dynamic";
 
 async function searchHandler(request: NextRequest) {
+  const rateLimited = applyPublicApiRateLimit(request, "/api/search");
+
+  if (rateLimited) {
+    return rateLimited;
+  }
+
   const query = request.nextUrl.searchParams.get("q") ?? "";
   const country = request.nextUrl.searchParams.get("country") ?? "KR";
   const limit = Number(request.nextUrl.searchParams.get("limit") ?? "40");

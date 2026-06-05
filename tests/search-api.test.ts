@@ -6,7 +6,9 @@ vi.mock("server-only", () => ({}));
 async function loadSearchRoute() {
   vi.resetModules();
   const cache = await import("@/lib/search-cache");
+  const rateLimit = await import("@/lib/rate-limit");
   cache.clearSearchCacheForTests();
+  rateLimit.clearPublicApiRateLimitForTests();
 
   return import("@/app/api/search/route");
 }
@@ -155,5 +157,37 @@ describe("search API route", () => {
         game.prices.some((price) => price.store === "steam")
       )
     ).toBe(true);
+  });
+
+  it("returns 429 retry metadata when one identity exceeds the public API limit", async () => {
+    vi.stubEnv("ITAD_API_KEY", "");
+    vi.stubEnv("PUBLIC_API_RATE_LIMIT_MAX_REQUESTS", "2");
+    vi.stubEnv("PUBLIC_API_RATE_LIMIT_WINDOW_SECONDS", "60");
+
+    const { GET } = await loadSearchRoute();
+    const requestInit = {
+      headers: {
+        "x-forwarded-for": "203.0.113.20"
+      }
+    };
+    const first = await GET(new NextRequest("http://localhost:3000/api/search?q=hades", requestInit));
+    const second = await GET(new NextRequest("http://localhost:3000/api/search?q=hades", requestInit));
+    const third = await GET(new NextRequest("http://localhost:3000/api/search?q=hades", requestInit));
+    const body = await third.json();
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(third.status).toBe(429);
+    expect(third.headers.get("X-API-Status")).toBe("429");
+    expect(third.headers.get("Retry-After")).toBe("60");
+    expect(third.headers.get("X-RateLimit-Limit")).toBe("2");
+    expect(body).toMatchObject({
+      error: "Rate limit exceeded.",
+      rateLimit: {
+        limit: 2,
+        remaining: 0,
+        retryAfterSeconds: 60
+      }
+    });
   });
 });

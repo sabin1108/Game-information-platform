@@ -1,10 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getReleaseFeed } from "@/lib/game-feeds";
 import { withApiMonitoring } from "@/lib/monitoring/api";
+import { applyPublicApiRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 async function releasesHandler(request: NextRequest) {
+  const rateLimited = applyPublicApiRateLimit(request, "/api/releases");
+
+  if (rateLimited) {
+    return rateLimited;
+  }
+
   const limit = Number(request.nextUrl.searchParams.get("limit") ?? "40");
   const tag = request.nextUrl.searchParams.get("tag") ?? undefined;
   const store = request.nextUrl.searchParams.get("store") ?? undefined;
