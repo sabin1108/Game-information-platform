@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
-    "analyze": "ANALYZE=true next build"
+    "analyze": "ANALYZE=true next build",
+    "load:public": "node scripts/load-public-routes.mjs"
   },
   "dependencies": {
     "@next/bundle-analyzer": "^15.3.0",

@@ -360,6 +360,9 @@ verified cache entry after the fresh TTL expired because the external refresh pa
 - Add DB explain plans for watchlist and latest price queries.
 - Add rate limiting per IP and user for search endpoints.
 
+See `docs/load-testing.md` for the current public-route smoke script, cache-safe scenarios, and
+query/index notes.
+
 ## 14. Testing Strategy
 
 - Unit test target condition logic.
