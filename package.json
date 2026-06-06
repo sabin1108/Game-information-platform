@@ -11,8 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
-    "analyze": "ANALYZE=true next build",
-    "load:public": "node scripts/load-public-routes.mjs"
+    "analyze": "node scripts/run-next-analyze.mjs",
+    "load:public": "node scripts/load-public-routes.mjs",
+    "build:game-card-lab": "vite build packages/game-card-lab --config packages/game-card-lab/vite.config.ts"
   },
   "dependencies": {
     "@next/bundle-analyzer": "^15.3.0",
@@ -36,6 +37,7 @@
     "eslint-config-next": "^15.3.0",
     "jsdom": "^26.1.0",
     "typescript": "^5.8.3",
+    "vite": "^7.3.3",
     "vitest": "^3.1.2"
   }
 }

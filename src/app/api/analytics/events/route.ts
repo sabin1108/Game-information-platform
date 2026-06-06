@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
 import { captureAnalyticsEvent } from "@/lib/analytics/server";
-import { ANALYTICS_EVENTS, type AnalyticsCaptureInput } from "@/lib/analytics/events";
+import { isAnalyticsCaptureInput } from "@/lib/analytics/events";
 import { withApiMonitoring } from "@/lib/monitoring/api";
-
-const allowedEvents = new Set<string>(Object.values(ANALYTICS_EVENTS));
 
 async function analyticsEventsHandler(request: Request) {
   try {
-    const payload = (await request.json()) as Partial<AnalyticsCaptureInput>;
+    const payload = await request.json();
 
-    if (!payload.event || !allowedEvents.has(payload.event) || !payload.distinctId) {
+    if (!isAnalyticsCaptureInput(payload)) {
       return NextResponse.json({ error: "Invalid analytics event." }, { status: 400 });
     }
 

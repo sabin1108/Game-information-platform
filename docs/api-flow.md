@@ -206,6 +206,18 @@ signup_completed
 web_vital_reported
 ```
 
+Analytics taxonomy:
+
+| Event | Capture path | Required payload | Fail-open rule |
+| --- | --- | --- | --- |
+| `experiment_exposure` | `ExperimentExposure` client component | `experiment_key`, `variant`, `subject_type`, `primary_metric`, `guardrail_metric` | Client capture catches errors and never blocks render. |
+| `popular_card_clicked` | `StoreBridgeLink` when a popular-card experiment key is present | `game_id`, `game_title`, `store`, `source`, `experiment_key`, `variant` | Store open continues even if analytics fails. |
+| `search_submitted` | `SearchTracker` on `/search` query or tag view | `query` or `tag`, `source` | Search results and recent-term cookie continue if analytics fails. |
+| `watchlist_add` | `addToWatchlist` server action | `game_id`, `game_title`, `status` | PostHog errors are swallowed by server capture. |
+| `deal_click` | `StoreBridgeLink` for store row or main store button | `game_id`, `game_title`, `store`, `store_name`, `url`, `source` | Native bridge or browser link handling continues. |
+| `signup_completed` | Auth completion path, planned | `method` | Must not block redirect. |
+| `web_vital_reported` | Web Vitals capture path, planned | `metric_name`, `metric_value` | Must not block user interaction. |
+
 Primary portfolio experiment:
 
 ```txt

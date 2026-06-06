@@ -1,5 +1,19 @@
 # 실험 문서
 
+## Event taxonomy
+
+| Event | Purpose | Payload |
+| --- | --- | --- |
+| `experiment_exposure` | Records stable assignment for `popular-card-density`. | `experiment_key`, `variant`, `subject_type`, `primary_metric`, `guardrail_metric` |
+| `popular_card_clicked` | Measures clicks from cards participating in the popular-card experiment. | `game_id`, `game_title`, `store`, `source`, `experiment_key`, `variant` |
+| `search_submitted` | Measures search intent from query and tag result views. | `query`, `tag`, `source` |
+| `deal_click` | Primary conversion for store price rows and store open buttons. | `game_id`, `game_title`, `store`, `store_name`, `url`, `source` |
+| `watchlist_add` | Guardrail conversion for saved games. | `game_id`, `game_title`, `status` |
+| `signup_completed` | Planned auth conversion event. | `method` |
+| `web_vital_reported` | Planned performance guardrail event. | `metric_name`, `metric_value` |
+
+Keep `experiment_exposure` name stable so historical experiment analysis remains comparable.
+
 ## `popular-card-density`
 
 목표: 인기 게임 카드를 더 촘촘하게 보여주면 스토어 클릭 의도가 증가하는지 확인한다. 단, 관심 목록 추가 전환이 떨어지면 안 된다.

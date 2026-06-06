@@ -57,4 +57,45 @@ describe("analytics API route", () => {
 
     expect(response.status).toBe(400);
   });
+
+  it("forwards supported analytics payload shapes", async () => {
+    vi.stubEnv("NEXT_PUBLIC_POSTHOG_TOKEN", "ph-test");
+    vi.stubEnv("NEXT_PUBLIC_POSTHOG_HOST", "https://posthog.example");
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { POST } = await loadAnalyticsRoute();
+    const response = await POST(
+      new Request("http://localhost:3000/api/analytics/events", {
+        method: "POST",
+        body: JSON.stringify({
+          event: "search_submitted",
+          distinctId: "anonymous-1",
+          properties: {
+            query: "hades",
+            tag: "roguelike",
+            source: "search-page"
+          }
+        })
+      })
+    );
+
+    expect(response.status).toBe(204);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://posthog.example/capture/",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          api_key: "ph-test",
+          event: "search_submitted",
+          distinct_id: "anonymous-1",
+          properties: {
+            query: "hades",
+            tag: "roguelike",
+            source: "search-page"
+          }
+        })
+      })
+    );
+  });
 });
