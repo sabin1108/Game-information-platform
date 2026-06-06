@@ -1,18 +1,18 @@
 # 실험 문서
 
-## Event taxonomy
+## 이벤트 분류
 
-| Event | Purpose | Payload |
+| 이벤트 | 목적 | 전송 데이터 |
 | --- | --- | --- |
-| `experiment_exposure` | Records stable assignment for `popular-card-density`. | `experiment_key`, `variant`, `subject_type`, `primary_metric`, `guardrail_metric` |
-| `popular_card_clicked` | Measures clicks from cards participating in the popular-card experiment. | `game_id`, `game_title`, `store`, `source`, `experiment_key`, `variant` |
-| `search_submitted` | Measures search intent from query and tag result views. | `query`, `tag`, `source` |
-| `deal_click` | Primary conversion for store price rows and store open buttons. | `game_id`, `game_title`, `store`, `store_name`, `url`, `source` |
-| `watchlist_add` | Guardrail conversion for saved games. | `game_id`, `game_title`, `status` |
-| `signup_completed` | Planned auth conversion event. | `method` |
-| `web_vital_reported` | Planned performance guardrail event. | `metric_name`, `metric_value` |
+| `experiment_exposure` | `popular-card-density`의 안정적인 variant 배정을 기록한다. | `experiment_key`, `variant`, `subject_type`, `primary_metric`, `guardrail_metric` |
+| `popular_card_clicked` | popular card 실험 대상 카드에서 발생한 클릭을 측정한다. | `game_id`, `game_title`, `store`, `source`, `experiment_key`, `variant` |
+| `search_submitted` | 검색어 또는 tag 결과 화면 진입 의도를 측정한다. | `query`, `tag`, `source` |
+| `deal_click` | store 가격 행과 store 열기 버튼의 주 전환을 측정한다. | `game_id`, `game_title`, `store`, `store_name`, `url`, `source` |
+| `watchlist_add` | 저장한 게임 수를 보호 지표 전환으로 측정한다. | `game_id`, `game_title`, `status` |
+| `signup_completed` | 이후 auth 전환 경로에서 사용할 예정인 이벤트다. | `method` |
+| `web_vital_reported` | 이후 성능 보호 지표 경로에서 사용할 예정인 이벤트다. | `metric_name`, `metric_value` |
 
-Keep `experiment_exposure` name stable so historical experiment analysis remains comparable.
+기존 실험 분석과 비교할 수 있도록 `experiment_exposure` 이름은 유지한다.
 
 ## `popular-card-density`
 

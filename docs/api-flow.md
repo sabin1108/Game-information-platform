@@ -206,17 +206,17 @@ signup_completed
 web_vital_reported
 ```
 
-Analytics taxonomy:
+Analytics 이벤트 분류:
 
-| Event | Capture path | Required payload | Fail-open rule |
+| 이벤트 | 수집 경로 | 필수 전송 데이터 | 실패 허용 규칙 |
 | --- | --- | --- | --- |
-| `experiment_exposure` | `ExperimentExposure` client component | `experiment_key`, `variant`, `subject_type`, `primary_metric`, `guardrail_metric` | Client capture catches errors and never blocks render. |
-| `popular_card_clicked` | `StoreBridgeLink` when a popular-card experiment key is present | `game_id`, `game_title`, `store`, `source`, `experiment_key`, `variant` | Store open continues even if analytics fails. |
-| `search_submitted` | `SearchTracker` on `/search` query or tag view | `query` or `tag`, `source` | Search results and recent-term cookie continue if analytics fails. |
-| `watchlist_add` | `addToWatchlist` server action | `game_id`, `game_title`, `status` | PostHog errors are swallowed by server capture. |
-| `deal_click` | `StoreBridgeLink` for store row or main store button | `game_id`, `game_title`, `store`, `store_name`, `url`, `source` | Native bridge or browser link handling continues. |
-| `signup_completed` | Auth completion path, planned | `method` | Must not block redirect. |
-| `web_vital_reported` | Web Vitals capture path, planned | `metric_name`, `metric_value` | Must not block user interaction. |
+| `experiment_exposure` | `ExperimentExposure` 클라이언트 컴포넌트 | `experiment_key`, `variant`, `subject_type`, `primary_metric`, `guardrail_metric` | 클라이언트 수집 오류를 잡고 화면 렌더링을 막지 않는다. |
+| `popular_card_clicked` | popular-card experiment key가 있는 `StoreBridgeLink` | `game_id`, `game_title`, `store`, `source`, `experiment_key`, `variant` | analytics 실패와 무관하게 store 열기를 계속한다. |
+| `search_submitted` | `/search` query 또는 tag 화면의 `SearchTracker` | `query` 또는 `tag`, `source` | 검색 결과와 최근 검색어 cookie 저장을 계속한다. |
+| `watchlist_add` | `addToWatchlist` server action | `game_id`, `game_title`, `status` | 서버 수집 함수가 PostHog 오류를 삼킨다. |
+| `deal_click` | store 행 또는 main store 버튼의 `StoreBridgeLink` | `game_id`, `game_title`, `store`, `store_name`, `url`, `source` | native bridge 또는 browser link 처리를 계속한다. |
+| `signup_completed` | auth 완료 경로, 예정 | `method` | redirect를 막으면 안 된다. |
+| `web_vital_reported` | Web Vitals 수집 경로, 예정 | `metric_name`, `metric_value` | 사용자 상호작용을 막으면 안 된다. |
 
 Primary portfolio experiment:
 
