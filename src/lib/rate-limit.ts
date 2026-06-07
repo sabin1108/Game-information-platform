@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-export type RateLimitConfig = {
+type RateLimitConfig = {
   enabled: boolean;
   maxRequests: number;
   windowMs: number;
@@ -32,7 +32,7 @@ function readPositiveInteger(value: string | undefined, fallback: number) {
   return Math.floor(parsed);
 }
 
-export function getPublicApiRateLimitConfig(): RateLimitConfig {
+function getPublicApiRateLimitConfig(): RateLimitConfig {
   return {
     enabled: process.env.PUBLIC_API_RATE_LIMIT_ENABLED !== "false",
     maxRequests: readPositiveInteger(

@@ -20,7 +20,7 @@ export function getDateAwareReleaseStatus(game: Pick<GameSummary, "releaseDate" 
   return game.releaseStatus;
 }
 
-export function normalizeGameReleaseStatus(game: GameSummary, now = Date.now()): GameSummary {
+function normalizeGameReleaseStatus(game: GameSummary, now = Date.now()): GameSummary {
   return {
     ...game,
     releaseStatus: getDateAwareReleaseStatus(game, now)

@@ -45,7 +45,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
-export function isAnalyticsEventName(value: unknown): value is AnalyticsEventName {
+function isAnalyticsEventName(value: unknown): value is AnalyticsEventName {
   return typeof value === "string" && Object.values(ANALYTICS_EVENTS).includes(value as AnalyticsEventName);
 }
 

@@ -2,8 +2,9 @@
 
 import { LoaderCircle } from "lucide-react";
 import { GameCardWatchlistAction } from "@/components/game-card-watchlist-action";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { GameCard } from "@/components/game-card";
+import { useIntersectionLoader } from "@/components/use-intersection-loader";
 import type { PopularCardVariant } from "@/lib/analytics/events";
 import type { GameSummary } from "@/types/game";
 
@@ -81,26 +82,9 @@ export function GameFeed({
     }
   }, [hasMore, isLoading, offset, store, tag]);
 
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-
-    if (!sentinel) {
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          void loadMore();
-        }
-      },
-      { rootMargin: "640px" }
-    );
-
-    observer.observe(sentinel);
-
-    return () => observer.disconnect();
-  }, [loadMore]);
+  useIntersectionLoader(sentinelRef, () => {
+    void loadMore();
+  });
 
   return (
     <>

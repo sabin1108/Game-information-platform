@@ -131,7 +131,7 @@ function isLikelyBaseGame(game: GameSummary) {
   ].some((blocked) => title.includes(blocked));
 }
 
-export function normalizeDealFilters(options: {
+function normalizeDealFilters(options: {
   country?: string;
   offset?: number;
   limit?: number;
@@ -160,7 +160,7 @@ export function normalizeDealFilters(options: {
   };
 }
 
-export function normalizeReleaseFilters(options: {
+function normalizeReleaseFilters(options: {
   country?: string;
   limit?: number;
   tag?: string;

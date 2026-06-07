@@ -62,7 +62,7 @@ export function isSentryConfigured() {
   return Boolean(env.sentryDsn);
 }
 
-export function isLocalAppUrl() {
+function isLocalAppUrl() {
   try {
     const url = new URL(env.appUrl);
 

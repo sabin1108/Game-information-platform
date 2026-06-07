@@ -1,9 +1,10 @@
 "use client";
 
 import { LoaderCircle } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { GameCard } from "@/components/game-card";
 import { GameCardWatchlistAction } from "@/components/game-card-watchlist-action";
+import { useIntersectionLoader } from "@/components/use-intersection-loader";
 import type { DealFilterState } from "@/lib/deal-cache";
 import type { GameSummary } from "@/types/game";
 
@@ -110,26 +111,9 @@ export function DealFeed({
     }
   }, [hasMore, isLoading, nextOffset, queryBase]);
 
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-
-    if (!sentinel) {
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          void loadMore();
-        }
-      },
-      { rootMargin: "640px" }
-    );
-
-    observer.observe(sentinel);
-
-    return () => observer.disconnect();
-  }, [loadMore]);
+  useIntersectionLoader(sentinelRef, () => {
+    void loadMore();
+  });
 
   return (
     <>

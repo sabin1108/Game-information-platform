@@ -193,7 +193,3 @@ export async function getPublicAiInsights(limit = 3, now = new Date()): Promise<
     data: rows.map((row) => normalizeInsight(row, now))
   };
 }
-
-export const aiInsightConfig = {
-  staleAfterMs: STALE_AFTER_MS
-};

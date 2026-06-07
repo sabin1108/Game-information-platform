@@ -55,17 +55,17 @@ export function getItadGameUrl(game: Pick<ItadGame, "slug" | "id">) {
   return game.slug ? `${ITAD_WEB_URL}/game/${game.slug}/` : `${ITAD_WEB_URL}/game/${game.id}/`;
 }
 
-export function getItadImageUrl(assets: ItadAssetMap | undefined) {
+function getItadImageUrl(assets: ItadAssetMap | undefined) {
   return assets?.banner600 ?? assets?.banner400 ?? assets?.banner300 ?? assets?.boxart ?? "";
 }
 
-export function getSteamAppIdFromUrl(url: string | undefined) {
+function getSteamAppIdFromUrl(url: string | undefined) {
   const match = url?.match(/store\.steampowered\.com\/app\/(\d+)/i);
 
   return match ? Number(match[1]) : undefined;
 }
 
-export function toStoreCode(storeName: string | undefined): StoreCode {
+function toStoreCode(storeName: string | undefined): StoreCode {
   const normalized = storeName?.toLowerCase() ?? "";
 
   if (normalized.includes("steam")) {
@@ -79,7 +79,7 @@ export function toStoreCode(storeName: string | undefined): StoreCode {
   return "itad";
 }
 
-export function toUnknownStoreProduct(game: ItadGame): StoreProduct {
+function toUnknownStoreProduct(game: ItadGame): StoreProduct {
   return {
     store: "itad",
     storeName: "IsThereAnyDeal",
@@ -103,7 +103,7 @@ function toMinorUnits(money: ItadMoney | undefined) {
   return money.amountInt ?? 0;
 }
 
-export function toStoreProduct(game: ItadGame, offer: ItadStoreOffer, historyLow?: ItadMoney): StoreProduct {
+function toStoreProduct(game: ItadGame, offer: ItadStoreOffer, historyLow?: ItadMoney): StoreProduct {
   const storeName = offer.shop?.name ?? "IsThereAnyDeal";
   const currentPriceCents = toMinorUnits(offer.price);
   const regularPriceCents = toMinorUnits(offer.regular) || currentPriceCents;
