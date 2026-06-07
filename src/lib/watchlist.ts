@@ -53,25 +53,60 @@ function getStoreName(store: StoreCode) {
   return "IsThereAnyDeal";
 }
 
+function toGameCatalogInput(game: GameSummary, itadGameId = game.id) {
+  return {
+    itad_game_id: itadGameId,
+    slug: game.slug,
+    title: game.title,
+    image_url: game.imageUrl || null,
+    release_date: toNullableDate(game.releaseDate),
+    release_status: game.releaseStatus,
+    steam_review_count: game.steamReviewCount ?? null,
+    steam_positive_ratio: game.steamPositiveRatio ?? null,
+    tags: game.tags,
+    raw: toJson(game),
+    updated_at: new Date().toISOString()
+  };
+}
+
 async function upsertGameCatalog(game: GameSummary) {
   const admin = createAdminClient();
-  const { data: gameRow, error: gameError } = await admin
+
+  const { data: existingByItadId, error: itadLookupError } = await admin
     .from("games")
-    .upsert(
-      {
-        itad_game_id: game.id,
-        slug: game.slug,
-        title: game.title,
-        image_url: game.imageUrl || null,
-        release_date: toNullableDate(game.releaseDate),
-        release_status: game.releaseStatus,
-        steam_review_count: game.steamReviewCount ?? null,
-        steam_positive_ratio: game.steamPositiveRatio ?? null,
-        tags: game.tags,
-        raw: toJson(game)
-      },
-      { onConflict: "itad_game_id" }
-    )
+    .select("id,itad_game_id")
+    .eq("itad_game_id", game.id)
+    .maybeSingle();
+
+  if (itadLookupError) {
+    throw new Error(itadLookupError.message);
+  }
+
+  const { data: existingBySlug, error: slugLookupError } = existingByItadId
+    ? { data: null, error: null }
+    : await admin
+      .from("games")
+      .select("id,itad_game_id")
+      .eq("slug", game.slug)
+      .maybeSingle();
+
+  if (slugLookupError) {
+    throw new Error(slugLookupError.message);
+  }
+
+  const existingGame = existingByItadId ?? existingBySlug;
+  const catalogInput = toGameCatalogInput(game, existingGame?.itad_game_id ?? game.id);
+
+  const { data: gameRow, error: gameError } = existingGame
+    ? await admin
+      .from("games")
+      .update(catalogInput)
+      .eq("id", existingGame.id)
+      .select("id")
+      .single()
+    : await admin
+    .from("games")
+    .insert(catalogInput)
     .select("id")
     .single();
 
