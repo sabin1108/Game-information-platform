@@ -52,6 +52,9 @@ curl -X POST http://localhost:3000/api/jobs/generate-ai-insights \
 - [DB Schema](docs/db-schema.md)
 - [API Flow](docs/api-flow.md)
 - [Implementation Roadmap](docs/implementation-roadmap.md)
+- [Demo Guide](docs/demo-guide.md)
+- [Load Testing](docs/load-testing.md)
+- [Bundle Analysis](docs/bundle-analysis.md)
 
 ## Scripts
 
@@ -61,5 +64,79 @@ npm run build
 npm run typecheck
 npm run test
 npm run e2e
+npm run e2e:smoke
 npm run analyze
 ```
+
+## 아키텍처
+
+- `src/app`: Next.js App Router pages, server actions, public API routes.
+- `src/components`: reusable UI and client interaction components.
+- `src/lib`: Supabase, cache, rate limit, search/deal/release feed, analytics, monitoring, AI insight logic.
+- `supabase`: database migrations and schema-facing setup.
+- `tests`: Vitest unit/API tests and Playwright E2E tests.
+
+Public route는 process-local cache와 rate limit bucket을 사용한다. 포트폴리오 배포에는 충분하지만, multi-instance 운영 traffic은 shared cache/rate-limit state를 Redis 또는 Vercel KV로 옮겨야 한다.
+
+## 테스트와 CI
+
+GitHub Actions는 아래 검증을 실행한다.
+
+```bash
+npm ci
+npm run typecheck
+npm run lint
+npm test
+npm run build
+npm run e2e:smoke
+```
+
+`npm run e2e:smoke`는 `@smoke` tag가 있는 Playwright test만 실행한다. 비용이 큰 full E2E suite와 public-route smoke를 분리한다. Full E2E는 아래 명령으로 실행한다.
+
+```bash
+npm run e2e
+```
+
+CI가 실패하면 아래 log를 순서대로 확인한다.
+
+- `Typecheck`: TypeScript error와 route type issue.
+- `Lint`: ESLint/Next.js rule failure.
+- `Unit tests`: Vitest assertion output.
+- `Production build`: Next.js build, route generation, env validation error.
+- `E2E smoke`: Playwright trace, screenshot, HTML report artifact.
+
+## 배포
+
+Vercel 배포는 같은 build command를 사용한다.
+
+```bash
+npm run build
+```
+
+Vercel에는 아래 environment variable 이름만 설정한다. 실제 값은 commit하지 않는다.
+
+```txt
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+ITAD_API_KEY
+ITAD_ENABLE_LOCAL_DEV
+AUTH_DEV_SKIP_EMAIL_CONFIRMATION
+NEXT_PUBLIC_APP_URL
+NEXT_PUBLIC_POSTHOG_TOKEN
+NEXT_PUBLIC_POSTHOG_HOST
+NEXT_PUBLIC_SENTRY_DSN
+SENTRY_DSN
+JOB_SECRET
+PUBLIC_API_RATE_LIMIT_ENABLED
+PUBLIC_API_RATE_LIMIT_MAX_REQUESTS
+PUBLIC_API_RATE_LIMIT_WINDOW_SECONDS
+```
+
+배포 후 아래 항목을 확인한다.
+
+- Home route가 열리고 popular game card가 보인다.
+- `/search?q=ring`, `/deals`, `/releases`, `/app`, `/login`, `/signup`가 load된다.
+- `/api/public/popular`가 cache metadata가 포함된 JSON을 반환한다.
+- [Demo Guide](docs/demo-guide.md)의 demo account 또는 demo procedure가 동작한다.
+- `.env.local`과 secret 값이 GitHub에 포함되지 않는다.

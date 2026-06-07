@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
+    "e2e:smoke": "playwright test --grep @smoke --project=desktop-chrome",
     "analyze": "node scripts/run-next-analyze.mjs",
     "load:public": "node scripts/load-public-routes.mjs",
     "build:game-card-lab": "vite build packages/game-card-lab --config packages/game-card-lab/vite.config.ts"
