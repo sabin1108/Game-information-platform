@@ -24,7 +24,7 @@ export type AnalyticsEventProperties = {
   store_name?: string;
   url?: string;
   source?: string;
-  status?: "added" | "exists";
+  status?: "added" | "exists" | "restored";
   query?: string;
   tag?: string;
   result_count?: number;

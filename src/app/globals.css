@@ -137,6 +137,25 @@ html[data-webview-mode="true"] .page-shell {
   display: contents;
 }
 
+.watchlist-toast {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  border: 1px solid #e0b2af;
+  border-radius: 8px;
+  background: #fff1f0;
+  color: #9f2323;
+  padding: 0 10px;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.watchlist-toast--success {
+  border-color: rgba(23, 107, 91, 0.25);
+  background: #e7f6ef;
+  color: var(--primary-dark);
+}
+
 .button {
   display: inline-flex;
   gap: 8px;
