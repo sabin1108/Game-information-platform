@@ -12,4 +12,22 @@ describe("recommendations", () => {
     expect(recommendations.some((game) => game.tags.includes("RPG"))).toBe(true);
     expect(recommendations.some((game) => watchlist.some((item) => item.game.id === game.id))).toBe(false);
   });
+
+  it("does not fall back to unrelated deals when only generic tags are available", () => {
+    const watchlist = [{
+      id: "watch-generic",
+      game: {
+        ...mockGames[0],
+        id: "generic-game",
+        slug: "generic-game",
+        tags: ["Game", "Action", "Singleplayer"]
+      }
+    }];
+
+    const seed = getRecommendationSeed(watchlist);
+    const recommendations = recommendGames(mockGames, watchlist, [], 6);
+
+    expect(seed.tags).toEqual([]);
+    expect(recommendations).toEqual([]);
+  });
 });

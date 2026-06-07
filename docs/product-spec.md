@@ -4,7 +4,7 @@ Last updated: 2026-05-26
 
 ## 1. Product Goal
 
-Steam과 Epic Games Store의 할인, 신작, 출시 예정 게임을 한 화면에서 확인하고, 사용자가 직접 만든 관심 목록에 대해 현재 가격과 목표 조건 충족 여부를 보여주는 웹 앱을 만든다.
+Steam과 Epic Games Store의 할인을 한 화면에서 확인하고, 사용자가 직접 만든 관심 목록에 대해 현재 가격과 목표 조건 충족 여부를 보여주는 웹 앱을 만든다.
 
 이 프로젝트는 단순 클론이 아니라 프론트엔드 취업 포트폴리오용으로 설계한다. 따라서 모바일 웹뷰, 인증, DB, 배포, 분석, A/B 테스트, 모니터링, 번들러, 트래픽 대응 경험이 코드와 문서로 증명되어야 한다.
 
@@ -63,13 +63,6 @@ review_count score
 - 리뷰 수/긍정 평가 기준 정렬
 - 관심 목록 추가
 
-### New And Upcoming
-
-- 신작/출시 예정 탭
-- 스토어 필터
-- 장르/태그 필터
-- 관심 목록 추가
-
 ### Webview Ready UX
 
 - 모바일 우선 반응형 레이아웃
@@ -122,7 +115,6 @@ review_count score
 
 - `/`: public home with search and popular feed
 - `/deals`: discount exploration
-- `/releases`: new and upcoming games
 - `/login`: login
 - `/signup`: signup
 
@@ -176,12 +168,11 @@ MVP 이후 1차 확장으로 다음 자동화 작업을 만든다.
 
 - 매일 캐시된 가격 데이터를 분석해 비정상적으로 큰 할인, 역사적 최저가 후보, 리뷰 대비 할인 매력도가 높은 게임을 찾는다.
 - 주간 리포트 생성: "이번 주 관심 목록에서 구매 타이밍이 좋아진 게임"
-- 신작 데이터와 태그를 기반으로 사용자 관심 게임과 비슷한 게임을 추천한다.
 - AI 결과는 사용자에게 바로 노출하기 전에 `ai_game_insights` 테이블에 저장하고, 근거 데이터와 생성 시간을 함께 보관한다.
 
 ## 11. Traffic And Reliability Strategy
 
-- Public home, deals, releases는 비로그인 트래픽이 많으므로 server-side cache를 우선 사용한다.
+- Public home과 deals는 비로그인 트래픽이 많으므로 server-side cache를 우선 사용한다.
 - 외부 API 호출은 Next.js server route에서만 수행하고 브라우저에는 API key를 노출하지 않는다.
 - IsThereAnyDeal rate limit을 고려해 동일 query와 country/store 조합은 DB 또는 KV에 TTL cache한다.
 - 관심 목록 대시보드는 사용자별 데이터이므로 DB index와 최신 price snapshot 조회 최적화가 중요하다.

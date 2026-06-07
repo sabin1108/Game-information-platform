@@ -566,6 +566,22 @@ html[data-webview-mode="true"] .page-shell {
   padding: 12px;
 }
 
+.target-form--matched {
+  border-color: rgba(23, 107, 91, 0.55);
+  background: linear-gradient(180deg, #f4fbf7 0%, #e7f5ef 100%);
+  box-shadow: 0 12px 30px rgba(23, 107, 91, 0.14);
+}
+
+.target-form--matched .tag {
+  background: #dcefe7;
+  color: var(--primary-dark);
+}
+
+.target-form--matched input {
+  border-color: rgba(23, 107, 91, 0.3);
+  background: #ffffff;
+}
+
 .target-form__summary {
   display: grid;
   grid-template-columns: 1fr auto;

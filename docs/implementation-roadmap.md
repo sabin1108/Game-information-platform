@@ -47,7 +47,7 @@ Deliverables:
 - Add/remove watchlist item.
 - Watchlist dashboard with Steam/Epic prices.
 - Target price/discount condition display.
-- Deals and releases tabs.
+- Deals tab.
 
 Portfolio evidence:
 
@@ -194,7 +194,7 @@ The project is portfolio-ready when all of these are true:
 3. Search and watchlist.
 4. Price cache and dashboard.
 5. Public popular feed.
-6. Deals/releases tabs.
+6. Deals tab.
 7. Webview mode.
 8. Analytics and A/B test.
 9. Monitoring and performance.

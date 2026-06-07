@@ -42,7 +42,6 @@ Local development keeps ITAD disabled by default to avoid accidental external ca
 GET /api/public/popular
 GET /api/search?q=:query&stores=steam,epic&country=KR
 GET /api/deals?stores=steam,epic&country=KR&minDiscount=50
-GET /api/releases?stores=steam,epic&country=KR&status=upcoming
 POST /api/events
 GET /api/experiments/bootstrap
 ```
@@ -170,19 +169,7 @@ Recommended filters:
 - Tags
 - Released recently
 
-## 8. New And Upcoming Flow
-
-```txt
-User opens /releases
-  -> GET /api/releases
-  -> Server fetches or reads cached release feed
-  -> Filter by store, release status, tags
-  -> Return games with store product links
-```
-
-MVP note: release feeds may be less complete than deal feeds. Treat unknown release dates as `unknown` instead of hiding them silently.
-
-## 9. A/B Testing Flow
+## 8. A/B Testing Flow
 
 ```txt
 User opens app
@@ -228,7 +215,7 @@ popular-card-density
   guardrails: LCP, client_error_rate
 ```
 
-## 10. AI Analysis Flow
+## 9. AI Analysis Flow
 
 ```txt
 Scheduler calls /api/jobs/generate-ai-insights
@@ -244,7 +231,7 @@ Scheduler calls /api/jobs/generate-ai-insights
 
 `/api/jobs/generate-ai-insights` authenticates the caller, records run timing when Supabase
 admin env is configured, returns a dry-run success in local environments without admin env, and
-keeps job failures isolated from public feed, search, deals, releases, and watchlist APIs.
+keeps job failures isolated from public feed, search, deals, and watchlist APIs.
 
 Current deterministic candidate types:
 
@@ -265,7 +252,7 @@ Good first AI tasks:
 
 The AI layer should never invent prices. All summaries must reference stored price snapshots and review metrics.
 
-## 11. Webview Flow
+## 10. Webview Flow
 
 ```txt
 Native app opens https://domain.com?webview=1
@@ -290,7 +277,7 @@ Bridge message shape:
 
 The web app must work without the native bridge. The bridge is progressive enhancement.
 
-## 12. Observability Flow
+## 11. Observability Flow
 
 ### Client
 
@@ -315,12 +302,12 @@ Watchlist API p95: under 1200ms for 100 items
 Client JS initial route budget: measured with bundle analyzer
 ```
 
-## 13. Traffic Strategy
+## 12. Traffic Strategy
 
 ### MVP
 
 - Cache public API responses by query, store, country, pagination, and filter.
-- Use pagination for deals and releases.
+- Use pagination for deals.
 - Use latest price snapshot lookup instead of loading all historical snapshots.
 - Use stale data if external API fails.
 
@@ -337,7 +324,6 @@ Fresh TTL:
 - `/api/public/popular`: 5 minutes
 - `/api/search`: 5 minutes
 - `/api/deals`: 5 minutes
-- `/api/releases`: 5 minutes
 
 Stale retention TTL:
 
@@ -351,14 +337,12 @@ Cache key dimensions:
 - Popular feed: provider, country, limit.
 - Search: provider, normalized query, country, limit, tag, store.
 - Deals: provider, country, offset, limit, min discount, max price, store, tag, sort.
-- Releases: provider, country, limit, tag, store.
 
 Observable cache metadata:
 
 - `/api/public/popular`: `X-Cache`, response `cache.status`.
 - `/api/search`: `X-Search-Cache`, response `cache.status`.
 - `/api/deals`: `X-Deals-Cache`, response `cache.status`.
-- `/api/releases`: `X-Releases-Cache`, response `cache.status`.
 
 Cache status values are `miss`, `hit`, and `stale`. `stale` means the payload came from a previously
 verified cache entry after the fresh TTL expired because the external refresh path failed.
@@ -375,7 +359,7 @@ verified cache entry after the fresh TTL expired because the external refresh pa
 See `docs/load-testing.md` for the current public-route smoke script, cache-safe scenarios, and
 query/index notes.
 
-## 14. Testing Strategy
+## 13. Testing Strategy
 
 - Unit test target condition logic.
 - Unit test price normalization.
@@ -384,7 +368,7 @@ query/index notes.
 - Playwright mobile tests for webview mode, bottom tabs, external link bridge fallback.
 - Performance budget check in CI after production build.
 
-## 15. References
+## 14. References
 
 - IsThereAnyDeal API: https://docs.isthereanydeal.com/
 - Next.js App Router: https://nextjs.org/docs/app

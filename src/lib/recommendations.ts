@@ -5,16 +5,56 @@ export type RecommendationSeed = {
   searches?: string[];
 };
 
+const ignoredRecommendationTags = new Set([
+  "game",
+  "games",
+  "package",
+  "dlc",
+  "demo",
+  "software",
+  "action",
+  "adventure",
+  "indie",
+  "singleplayer",
+  "multiplayer"
+]);
+
 function normalize(value: string) {
   return value.trim().toLowerCase();
 }
 
+function normalizeRecommendationTag(value: string) {
+  const normalized = normalize(value);
+
+  return normalized && !ignoredRecommendationTags.has(normalized) ? normalized : "";
+}
+
 function addWeight(weights: Map<string, number>, key: string, value: number) {
-  const normalized = normalize(key);
+  const normalized = normalizeRecommendationTag(key);
 
   if (normalized) {
     weights.set(normalized, (weights.get(normalized) ?? 0) + value);
   }
+}
+
+function isTagMatch(candidateTag: string, seedTag: string) {
+  const candidate = normalizeRecommendationTag(candidateTag);
+
+  if (!candidate) {
+    return false;
+  }
+
+  if (candidate === seedTag) {
+    return true;
+  }
+
+  if (seedTag === "rpg" && candidate.endsWith("rpg")) {
+    return true;
+  }
+
+  return candidate.length >= 4 && seedTag.length >= 4 && (
+    candidate.includes(seedTag) || seedTag.includes(candidate)
+  );
 }
 
 export function getRecommendationSeed(watchlist: WatchlistItem[], searches: string[] = []): RecommendationSeed {
@@ -44,17 +84,14 @@ export function recommendGames(games: GameSummary[], watchlist: WatchlistItem[],
   const watchedSlugs = new Set(watchlist.map((item) => item.game.slug));
 
   if (!seed.tags.length) {
-    return games
-      .filter((game) => !watchedIds.has(game.id) && !watchedSlugs.has(game.slug))
-      .slice(0, limit);
+    return [];
   }
 
   return games
     .filter((game) => !watchedIds.has(game.id) && !watchedSlugs.has(game.slug))
     .map((game) => {
       const score = game.tags.reduce((sum, tag) => {
-        const tagName = normalize(tag);
-        const index = seed.tags.findIndex((seedTag) => tagName.includes(seedTag) || seedTag.includes(tagName));
+        const index = seed.tags.findIndex((seedTag) => isTagMatch(tag, seedTag));
 
         return index === -1 ? sum : sum + Math.max(1, seed.tags.length - index);
       }, 0);

@@ -66,7 +66,10 @@ export function GameCard({
   }, [game.id, game.imageUrl]);
 
   return (
-    <article className={cardVariant === "variant_a" ? "game-card game-card--dense" : "game-card"}>
+    <article className={[
+      "game-card",
+      cardVariant === "variant_a" ? "game-card--dense" : ""
+    ].filter(Boolean).join(" ")}>
       <div className="game-card__image">
         {hasImage ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -159,12 +162,14 @@ export function GameCard({
           ))}
         </div>
 
-        {action ?? (
-          <button className="button button--primary" type="button">
-            <BellPlus size={17} aria-hidden="true" />
-            {actionLabel}
-          </button>
-        )}
+        <div className="game-card__action">
+          {action ?? (
+            <button className="button button--primary" type="button">
+              <BellPlus size={17} aria-hidden="true" />
+              {actionLabel}
+            </button>
+          )}
+        </div>
 
         <StoreBridgeLink
           className="button"

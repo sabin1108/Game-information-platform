@@ -16,7 +16,10 @@ export function WatchlistTargetForm({ item, disabled = false }: WatchlistTargetF
   const bestPrice = matchState.bestPrice;
 
   return (
-    <form className="target-form" action={updateWatchlistTargetAction}>
+    <form
+      className={matchState.matched ? "target-form target-form--matched" : "target-form"}
+      action={updateWatchlistTargetAction}
+    >
       <input type="hidden" name="itemId" value={item.id} />
       <div className="target-form__summary">
         <div>

@@ -1,4 +1,4 @@
-import { Flame, Sparkles, Star, TrendingUp } from "lucide-react";
+import { Flame, Star, TrendingUp } from "lucide-react";
 import { AiInsightSection } from "@/components/ai-insight-section";
 import { ExperimentExposure } from "@/components/experiment-exposure";
 import { GameFeed } from "@/components/game-feed";
@@ -21,7 +21,6 @@ export default async function HomePage() {
   const discountedGames = dealFeed.games.filter((game) =>
     game.prices.some((price) => price.discountPercent > 0)
   );
-  const upcomingGames = popularFeed.games.filter((game) => game.releaseStatus === "upcoming");
 
   return (
     <>
@@ -41,10 +40,6 @@ export default async function HomePage() {
           <a className="tab" href="/deals">
             <Flame size={16} aria-hidden="true" />
             할인
-          </a>
-          <a className="tab" href="/releases">
-            <Sparkles size={16} aria-hidden="true" />
-            신작
           </a>
         </div>
 
@@ -66,10 +61,6 @@ export default async function HomePage() {
           <div className="stat">
             <span>할인 중</span>
             <strong>{discountedGames.length}</strong>
-          </div>
-          <div className="stat">
-            <span>출시 예정</span>
-            <strong>{upcomingGames.length}</strong>
           </div>
           <div className="stat">
             <span>데이터 출처</span>

@@ -154,7 +154,7 @@ create table public.price_snapshots (
 
 ### search_cache
 
-External API cache for search, deals, and releases.
+External API cache for search and deals.
 
 ```sql
 create table public.search_cache (

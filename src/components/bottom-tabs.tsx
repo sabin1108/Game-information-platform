@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Flame, House, Library, Sparkles } from "lucide-react";
+import { Flame, House, Library } from "lucide-react";
 
 const tabs = [
   { href: "/", label: "홈", icon: House },
   { href: "/deals", label: "할인", icon: Flame },
-  { href: "/releases", label: "신작", icon: Sparkles },
   { href: "/app", label: "관심", icon: Library }
 ] as const;
 

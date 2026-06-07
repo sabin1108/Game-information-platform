@@ -10,15 +10,6 @@ import {
   type DealFilterState,
   type DealSort
 } from "@/lib/deal-cache";
-import {
-  getReleaseCache,
-  getReleaseCacheKey,
-  getStaleReleaseCache,
-  releaseCacheConfig,
-  setReleaseCache,
-  type ReleaseCacheStatus,
-  type ReleaseFilterState
-} from "@/lib/release-cache";
 import { isItadConfigured } from "@/lib/env";
 import { getItadDeals, getItadPopular } from "@/lib/itad";
 import { mockGames } from "@/lib/mock-data";
@@ -52,10 +43,7 @@ export type GameFeed = {
   popularCacheTtlSeconds?: number;
   dealCacheStatus?: DealCacheStatus;
   dealCacheTtlSeconds?: number;
-  releaseCacheStatus?: ReleaseCacheStatus;
-  releaseCacheTtlSeconds?: number;
   filters?: DealFilterState;
-  releaseFilters?: ReleaseFilterState;
 };
 
 function getWarning(error: unknown) {
@@ -157,20 +145,6 @@ function normalizeDealFilters(options: {
     store: normalizeStore(options.store),
     tag: normalizeTag(options.tag),
     sort: normalizeSort(options.sort)
-  };
-}
-
-function normalizeReleaseFilters(options: {
-  country?: string;
-  limit?: number;
-  tag?: string;
-  store?: string;
-} = {}): ReleaseFilterState {
-  return {
-    country: (options.country ?? "KR").trim().toUpperCase(),
-    limit: clampNumber(options.limit, 40, 1, 100),
-    tag: normalizeTag(options.tag),
-    store: normalizeStore(options.store)
   };
 }
 
@@ -322,45 +296,6 @@ function dedupeGames(games: GameSummary[]) {
   }
 
   return [...byGame.values()];
-}
-
-function getReleaseTime(game: GameSummary) {
-  if (!game.releaseDate) {
-    return Number.MAX_SAFE_INTEGER;
-  }
-
-  const time = new Date(game.releaseDate).getTime();
-
-  return Number.isFinite(time) ? time : Number.MAX_SAFE_INTEGER;
-}
-
-function applyReleaseFilters(games: GameSummary[], filters: ReleaseFilterState) {
-  const normalizedTag = filters.tag?.toLowerCase();
-
-  return games
-    .filter((game) => {
-      const tagMatches = !normalizedTag || game.tags.some((tag) => tag.toLowerCase().includes(normalizedTag));
-      const storeMatches = !filters.store || game.prices.some((price) => price.store === filters.store);
-
-      return tagMatches && storeMatches;
-    })
-    .sort((a, b) => {
-      const statusOrder = { upcoming: 0, unknown: 1, released: 2 };
-      const statusDiff = statusOrder[a.releaseStatus] - statusOrder[b.releaseStatus];
-
-      if (statusDiff !== 0) {
-        return statusDiff;
-      }
-
-      const releaseDiff = getReleaseTime(a) - getReleaseTime(b);
-
-      if (releaseDiff !== 0) {
-        return releaseDiff;
-      }
-
-      return a.title.localeCompare(b.title);
-    })
-    .slice(0, filters.limit);
 }
 
 export async function getPopularFeed(limit = 24, country = "KR"): Promise<GameFeed> {
@@ -551,62 +486,6 @@ export async function getDealFeed(options: {
     filters,
     dealCacheStatus: "miss",
     dealCacheTtlSeconds: dealCacheConfig.ttlSeconds
-  };
-}
-
-export async function getReleaseFeed(options: {
-  country?: string;
-  limit?: number;
-  tag?: string;
-  store?: string;
-} = {}): Promise<GameFeed> {
-  const filters = normalizeReleaseFilters(options);
-  const provider = "mock";
-  const cacheKey = getReleaseCacheKey(provider, filters);
-  const cached = getReleaseCache(cacheKey);
-  const stale = getStaleReleaseCache(cacheKey);
-
-  if (cached) {
-    return {
-      source: cached.source,
-      warning: cached.warning,
-      games: cached.games,
-      releaseFilters: filters,
-      releaseCacheStatus: "hit",
-      releaseCacheTtlSeconds: cached.ttlSeconds
-    };
-  }
-
-  let payload: GameFeed;
-
-  try {
-    const refreshedGames = await refreshSteamPrices(mockGames, filters.country);
-    payload = {
-      source: provider,
-      games: applyReleaseFilters(normalizeGameReleaseStatuses(refreshedGames), filters)
-    };
-  } catch (error) {
-    if (stale) {
-      return {
-        source: stale.source,
-        warning: getWarning(error),
-        games: stale.games,
-        releaseFilters: filters,
-        releaseCacheStatus: "stale",
-        releaseCacheTtlSeconds: stale.ttlSeconds
-      };
-    }
-
-    throw error;
-  }
-
-  setReleaseCache(cacheKey, payload);
-
-  return {
-    ...payload,
-    releaseFilters: filters,
-    releaseCacheStatus: "miss",
-    releaseCacheTtlSeconds: releaseCacheConfig.ttlSeconds
   };
 }
 

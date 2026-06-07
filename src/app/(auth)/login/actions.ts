@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
-type LoginRedirectPath = "/" | "/app" | "/app/profile" | "/deals" | "/releases" | "/search";
+type LoginRedirectPath = "/" | "/app" | "/app/profile" | "/deals" | "/search";
 
 function getSafeRedirectPath(value: FormDataEntryValue | null): LoginRedirectPath {
   const path = String(value ?? "").trim();
@@ -13,7 +13,6 @@ function getSafeRedirectPath(value: FormDataEntryValue | null): LoginRedirectPat
     path === "/app" ||
     path === "/app/profile" ||
     path === "/deals" ||
-    path === "/releases" ||
     path === "/search"
   ) {
     return path;

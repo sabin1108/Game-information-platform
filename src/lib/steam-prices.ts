@@ -331,7 +331,7 @@ export async function enrichSteamMetadata(games: GameSummary[], country = "KR") 
       return {
         ...game,
         ...releaseMetadata,
-        imageUrl: game.imageUrl || details?.data?.header_image || "",
+        imageUrl: details?.data?.header_image || game.imageUrl || "",
         tags: [
           ...new Set([
             ...filterSourceTags(game.tags),

@@ -12,7 +12,7 @@ type SnapshotRow = Database["public"]["Tables"]["price_snapshots"]["Row"];
 type PersistableStoreCode = Extract<StoreCode, "steam" | "epic">;
 
 export type AddWatchlistResult = {
-  status: "created" | "exists";
+  status: "created" | "exists" | "restored";
 };
 
 export type WatchlistTargetInput = {
@@ -144,6 +144,34 @@ export async function addGameToWatchlist(
   }
 
   if (error.code === "23505") {
+    const { data: existing, error: existingError } = await supabase
+      .from("watchlist_items")
+      .select("id,archived_at")
+      .eq("user_id", userId)
+      .eq("game_id", gameId)
+      .maybeSingle();
+
+    if (existingError) {
+      throw new Error(existingError.message);
+    }
+
+    if (existing?.archived_at) {
+      const { error: restoreError } = await supabase
+        .from("watchlist_items")
+        .update({
+          archived_at: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", existing.id)
+        .eq("user_id", userId);
+
+      if (restoreError) {
+        throw new Error(restoreError.message);
+      }
+
+      return { status: "restored" };
+    }
+
     return { status: "exists" };
   }
 

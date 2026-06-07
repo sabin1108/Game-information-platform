@@ -1,8 +1,8 @@
 # Game-information-platform
 
-게임 할인 및 신작 게임, 찜한 게임의 정보를 확인하고 직접 스토어로 연결해주는 사이트입니다.
+게임 할인과 찜한 게임의 정보를 확인하고 직접 스토어로 연결해주는 사이트입니다.
 
-Steam과 Epic Games Store의 할인, 신작, 출시 예정 게임을 한 화면에서 확인하고 사용자별 관심 목록을 관리하는 Next.js 앱입니다.
+Steam과 Epic Games Store의 할인을 한 화면에서 확인하고 사용자별 관심 목록을 관리하는 Next.js 앱입니다.
 
 ## Stack
 
@@ -72,7 +72,7 @@ npm run analyze
 
 - `src/app`: Next.js App Router pages, server actions, public API routes.
 - `src/components`: reusable UI and client interaction components.
-- `src/lib`: Supabase, cache, rate limit, search/deal/release feed, analytics, monitoring, AI insight logic.
+- `src/lib`: Supabase, cache, rate limit, search/deal feed, analytics, monitoring, AI insight logic.
 - `supabase`: database migrations and schema-facing setup.
 - `tests`: Vitest unit/API tests and Playwright E2E tests.
 
@@ -136,7 +136,7 @@ PUBLIC_API_RATE_LIMIT_WINDOW_SECONDS
 배포 후 아래 항목을 확인한다.
 
 - Home route가 열리고 popular game card가 보인다.
-- `/search?q=ring`, `/deals`, `/releases`, `/app`, `/login`, `/signup`가 load된다.
+- `/search?q=ring`, `/deals`, `/app`, `/login`, `/signup`가 load된다.
 - `/api/public/popular`가 cache metadata가 포함된 JSON을 반환한다.
 - [Demo Guide](docs/demo-guide.md)의 demo account 또는 demo procedure가 동작한다.
 - `.env.local`과 secret 값이 GitHub에 포함되지 않는다.
