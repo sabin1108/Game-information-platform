@@ -21,6 +21,8 @@ export type WatchlistTargetInput = {
   note?: string | null;
 };
 
+type WatchlistUpdate = Database["public"]["Tables"]["watchlist_items"]["Update"];
+
 function toJson(value: unknown): Json {
   return JSON.parse(JSON.stringify(value)) as Json;
 }
@@ -51,6 +53,34 @@ function getStoreName(store: StoreCode) {
   }
 
   return "IsThereAnyDeal";
+}
+
+async function updateExistingWatchlistItem(
+  supabase: SupabaseServerClient,
+  userId: string,
+  itemId: string,
+  input: WatchlistUpdate
+) {
+  const { data, error } = await supabase
+    .from("watchlist_items")
+    .update({
+      ...input,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", itemId)
+    .eq("user_id", userId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    throw new Error("Watchlist item not found.");
+  }
+
+  return data;
 }
 
 function toGameCatalogInput(game: GameSummary, itadGameId = game.id) {
@@ -219,28 +249,11 @@ export async function updateWatchlistTarget(
   itemId: string,
   input: WatchlistTargetInput
 ) {
-  const { data, error } = await supabase
-    .from("watchlist_items")
-    .update({
-      target_price_cents: input.targetPriceCents ?? null,
-      target_discount_percent: input.targetDiscountPercent ?? null,
-      note: input.note?.trim() ? input.note.trim() : null,
-      updated_at: new Date().toISOString()
-    })
-    .eq("id", itemId)
-    .eq("user_id", userId)
-    .select("id")
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  if (!data) {
-    throw new Error("Watchlist item not found.");
-  }
-
-  return data;
+  return updateExistingWatchlistItem(supabase, userId, itemId, {
+    target_price_cents: input.targetPriceCents ?? null,
+    target_discount_percent: input.targetDiscountPercent ?? null,
+    note: input.note?.trim() ? input.note.trim() : null
+  });
 }
 
 export async function archiveWatchlistItem(
@@ -248,26 +261,9 @@ export async function archiveWatchlistItem(
   userId: string,
   itemId: string
 ) {
-  const { data, error } = await supabase
-    .from("watchlist_items")
-    .update({
-      archived_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    })
-    .eq("id", itemId)
-    .eq("user_id", userId)
-    .select("id")
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  if (!data) {
-    throw new Error("Watchlist item not found.");
-  }
-
-  return data;
+  return updateExistingWatchlistItem(supabase, userId, itemId, {
+    archived_at: new Date().toISOString()
+  });
 }
 
 function toGameSummary(game: GameRow, prices: StorePrice[]): GameSummary {

@@ -1,4 +1,5 @@
 import type { GameSummary } from "@/types/game";
+import { getFreshCacheEntry, getStaleCacheEntry, trimOldestCacheEntries } from "@/lib/stale-cache";
 
 const SEARCH_CACHE_TTL_MS = 5 * 60 * 1000;
 const SEARCH_CACHE_STALE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -31,6 +32,17 @@ type SearchCacheEntry = SearchCachePayload & {
 
 const searchCache = new Map<string, SearchCacheEntry>();
 
+function toSearchCachePayload(entry: SearchCacheEntry, ttlSeconds: number) {
+  return {
+    source: entry.source,
+    query: entry.query,
+    normalized: entry.normalized,
+    games: entry.games,
+    warning: entry.warning,
+    ttlSeconds
+  };
+}
+
 export function normalizeSearchQuery(query: string) {
   return query.trim().replace(/\s+/g, " ").toLowerCase();
 }
@@ -47,52 +59,15 @@ export function getSearchCacheKey(input: SearchCacheKeyInput) {
 }
 
 export function getSearchCache(key: string, now = Date.now()) {
-  const entry = searchCache.get(key);
+  const cached = getFreshCacheEntry(searchCache, key, now);
 
-  if (!entry) {
-    return null;
-  }
-
-  if (entry.expiresAt <= now) {
-    return null;
-  }
-
-  searchCache.delete(key);
-  searchCache.set(key, entry);
-
-  return {
-    source: entry.source,
-    query: entry.query,
-    normalized: entry.normalized,
-    games: entry.games,
-    warning: entry.warning,
-    ttlSeconds: Math.max(0, Math.ceil((entry.expiresAt - now) / 1000))
-  };
+  return cached ? toSearchCachePayload(cached.entry, cached.ttlSeconds) : null;
 }
 
 export function getStaleSearchCache(key: string, now = Date.now()) {
-  const entry = searchCache.get(key);
+  const cached = getStaleCacheEntry(searchCache, key, now);
 
-  if (!entry) {
-    return null;
-  }
-
-  if (entry.staleUntil <= now) {
-    searchCache.delete(key);
-    return null;
-  }
-
-  searchCache.delete(key);
-  searchCache.set(key, entry);
-
-  return {
-    source: entry.source,
-    query: entry.query,
-    normalized: entry.normalized,
-    games: entry.games,
-    warning: entry.warning,
-    ttlSeconds: Math.max(0, Math.ceil((entry.staleUntil - now) / 1000))
-  };
+  return cached ? toSearchCachePayload(cached.entry, cached.ttlSeconds) : null;
 }
 
 export function setSearchCache(key: string, payload: SearchCachePayload, now = Date.now()) {
@@ -102,15 +77,7 @@ export function setSearchCache(key: string, payload: SearchCachePayload, now = D
     staleUntil: now + SEARCH_CACHE_STALE_TTL_MS
   });
 
-  while (searchCache.size > SEARCH_CACHE_MAX_ENTRIES) {
-    const oldestKey = searchCache.keys().next().value;
-
-    if (!oldestKey) {
-      break;
-    }
-
-    searchCache.delete(oldestKey);
-  }
+  trimOldestCacheEntries(searchCache, SEARCH_CACHE_MAX_ENTRIES);
 }
 
 export function clearSearchCacheForTests() {

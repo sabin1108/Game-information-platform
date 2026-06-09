@@ -1,31 +1,12 @@
 import React from "react";
 import { BrainCircuit, Clock3, Database } from "lucide-react";
 import type { PublicAiInsight } from "@/lib/ai-insights";
+import { formatKoreanDateTime } from "@/lib/format";
 
 type AiInsightSectionProps = {
   insights: PublicAiInsight[];
   warning?: string;
 };
-
-function formatDateTime(value: string | null) {
-  if (!value) {
-    return "생성 시간 없음";
-  }
-
-  const date = new Date(value);
-
-  if (!Number.isFinite(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit"
-  }).format(date);
-}
 
 export function AiInsightSection({ insights, warning }: AiInsightSectionProps) {
   return (
@@ -55,7 +36,7 @@ export function AiInsightSection({ insights, warning }: AiInsightSectionProps) {
               <div className="insight-card__meta">
                 <span>
                   <Clock3 size={14} aria-hidden="true" />
-                  {formatDateTime(insight.generatedAt)}
+                  {formatKoreanDateTime(insight.generatedAt, "생성 시간 없음")}
                 </span>
                 <span>
                   <Database size={14} aria-hidden="true" />

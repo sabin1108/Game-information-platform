@@ -1,4 +1,5 @@
 import type { GameFeed } from "@/lib/game-feeds";
+import { getFreshCacheEntry, getStaleCacheEntry, trimOldestCacheEntries } from "@/lib/stale-cache";
 
 const POPULAR_CACHE_TTL_MS = 5 * 60 * 1000;
 const POPULAR_CACHE_STALE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -14,6 +15,15 @@ type PopularCacheEntry = GameFeed & {
 
 const popularCache = new Map<string, PopularCacheEntry>();
 
+function toPopularCachePayload(entry: PopularCacheEntry, ttlSeconds: number) {
+  return {
+    source: entry.source,
+    games: entry.games,
+    warning: entry.warning,
+    ttlSeconds
+  };
+}
+
 export function getPopularCacheKey(provider: GameFeed["source"], options: {
   country: string;
   limit: number;
@@ -27,44 +37,15 @@ export function getPopularCacheKey(provider: GameFeed["source"], options: {
 }
 
 export function getPopularCache(key: string, now = Date.now()) {
-  const entry = popularCache.get(key);
+  const cached = getFreshCacheEntry(popularCache, key, now);
 
-  if (!entry || entry.expiresAt <= now) {
-    return null;
-  }
-
-  popularCache.delete(key);
-  popularCache.set(key, entry);
-
-  return {
-    source: entry.source,
-    games: entry.games,
-    warning: entry.warning,
-    ttlSeconds: Math.max(0, Math.ceil((entry.expiresAt - now) / 1000))
-  };
+  return cached ? toPopularCachePayload(cached.entry, cached.ttlSeconds) : null;
 }
 
 export function getStalePopularCache(key: string, now = Date.now()) {
-  const entry = popularCache.get(key);
+  const cached = getStaleCacheEntry(popularCache, key, now);
 
-  if (!entry) {
-    return null;
-  }
-
-  if (entry.staleUntil <= now) {
-    popularCache.delete(key);
-    return null;
-  }
-
-  popularCache.delete(key);
-  popularCache.set(key, entry);
-
-  return {
-    source: entry.source,
-    games: entry.games,
-    warning: entry.warning,
-    ttlSeconds: Math.max(0, Math.ceil((entry.staleUntil - now) / 1000))
-  };
+  return cached ? toPopularCachePayload(cached.entry, cached.ttlSeconds) : null;
 }
 
 export function setPopularCache(key: string, payload: GameFeed, now = Date.now()) {
@@ -74,15 +55,7 @@ export function setPopularCache(key: string, payload: GameFeed, now = Date.now()
     staleUntil: now + POPULAR_CACHE_STALE_TTL_MS
   });
 
-  while (popularCache.size > POPULAR_CACHE_MAX_ENTRIES) {
-    const oldestKey = popularCache.keys().next().value;
-
-    if (!oldestKey) {
-      break;
-    }
-
-    popularCache.delete(oldestKey);
-  }
+  trimOldestCacheEntries(popularCache, POPULAR_CACHE_MAX_ENTRIES);
 }
 
 export function clearPopularCacheForTests() {

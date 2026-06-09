@@ -1,5 +1,6 @@
 import "server-only";
 
+import { clampNumber, getErrorMessage, withTimeout } from "@/lib/async-utils";
 import {
   dealCacheConfig,
   getDealCache,
@@ -45,33 +46,6 @@ export type GameFeed = {
   dealCacheTtlSeconds?: number;
   filters?: DealFilterState;
 };
-
-function getWarning(error: unknown) {
-  return error instanceof Error ? error.message : "ITAD request failed.";
-}
-
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string) {
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-
-  return Promise.race([
-    promise.finally(() => {
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-    }),
-    new Promise<never>((_, reject) => {
-      timeout = setTimeout(() => reject(new Error(message)), timeoutMs);
-    })
-  ]);
-}
-
-function clampNumber(value: number | undefined, fallback: number, min: number, max: number) {
-  if (typeof value !== "number" || Number.isNaN(value)) {
-    return fallback;
-  }
-
-  return Math.min(max, Math.max(min, Math.floor(value)));
-}
 
 function normalizeStore(value: string | undefined): StoreCode | undefined {
   if (value === "steam" || value === "epic" || value === "itad") {
@@ -352,7 +326,7 @@ export async function getPopularFeed(limit = 24, country = "KR"): Promise<GameFe
     if (stale) {
       return {
         source: stale.source,
-        warning: getWarning(error),
+        warning: getErrorMessage(error, "ITAD request failed."),
         games: stale.games,
         popularCacheStatus: "stale",
         popularCacheTtlSeconds: stale.ttlSeconds
@@ -361,7 +335,7 @@ export async function getPopularFeed(limit = 24, country = "KR"): Promise<GameFe
 
     return {
       source: "mock",
-      warning: getWarning(error),
+      warning: getErrorMessage(error, "ITAD request failed."),
       games: normalizeGameReleaseStatuses(await refreshSteamPrices(mockGames.slice(0, limit), normalizedCountry)),
       popularCacheStatus: "miss",
       popularCacheTtlSeconds: popularCacheConfig.ttlSeconds
@@ -455,7 +429,7 @@ export async function getDealFeed(options: {
       if (stale) {
         return {
           source: stale.source,
-          warning: getWarning(error),
+          warning: getErrorMessage(error, "ITAD request failed."),
           games: stale.games,
           nextOffset: stale.nextOffset,
           hasMore: stale.hasMore,
@@ -470,7 +444,7 @@ export async function getDealFeed(options: {
 
       payload = {
         source: "mock",
-        warning: getWarning(error),
+        warning: getErrorMessage(error, "ITAD request failed."),
         games: normalizeGameReleaseStatuses(applyDealFilters(sourceGames, filters)),
         nextOffset: filters.offset + filters.limit,
         hasMore: false,

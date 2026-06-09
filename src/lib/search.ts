@@ -1,5 +1,6 @@
 import "server-only";
 
+import { clampNumber, getErrorMessage, withTimeout } from "@/lib/async-utils";
 import { isItadConfigured } from "@/lib/env";
 import { searchItadGames } from "@/lib/itad";
 import { searchMockGames } from "@/lib/mock-data";
@@ -35,31 +36,8 @@ export type SearchFilters = {
   store?: string;
 };
 
-function getWarning(error: unknown) {
-  return error instanceof Error ? error.message : "ITAD request failed.";
-}
-
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string) {
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-
-  return Promise.race([
-    promise.finally(() => {
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-    }),
-    new Promise<never>((_, reject) => {
-      timeout = setTimeout(() => reject(new Error(message)), timeoutMs);
-    })
-  ]);
-}
-
 function clampLimit(value: number | undefined) {
-  if (!value || Number.isNaN(value)) {
-    return 40;
-  }
-
-  return Math.min(100, Math.max(1, Math.floor(value)));
+  return clampNumber(value, 40, 1, 100);
 }
 
 function normalizeOptionalText(value: string | undefined) {
@@ -128,7 +106,7 @@ export async function searchGames(query: string, options: SearchFilters = {}): P
       if (stale) {
         return {
           ...stale,
-          warning: getWarning(error),
+          warning: getErrorMessage(error, "ITAD request failed."),
           cache: {
             status: "stale",
             key: cacheKey,
@@ -141,7 +119,7 @@ export async function searchGames(query: string, options: SearchFilters = {}): P
         source: "mock",
         query: normalizedQuery,
         normalized: true,
-        warning: getWarning(error),
+        warning: getErrorMessage(error, "ITAD request failed."),
         games: filterGames(searchMockGames(normalizedQuery), options).slice(0, limit)
       };
     }

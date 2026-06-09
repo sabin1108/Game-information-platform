@@ -1,5 +1,6 @@
 import type { StoreCode } from "@/types/game";
 import type { GameFeed } from "@/lib/game-feeds";
+import { getFreshCacheEntry, getStaleCacheEntry, trimOldestCacheEntries } from "@/lib/stale-cache";
 
 const DEAL_CACHE_TTL_MS = 5 * 60 * 1000;
 const DEAL_CACHE_STALE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -27,6 +28,18 @@ type DealCacheEntry = GameFeed & {
 
 const dealCache = new Map<string, DealCacheEntry>();
 
+function toDealCachePayload(entry: DealCacheEntry, ttlSeconds: number) {
+  return {
+    source: entry.source,
+    games: entry.games,
+    warning: entry.warning,
+    nextOffset: entry.nextOffset,
+    hasMore: entry.hasMore,
+    tagOptions: entry.tagOptions,
+    ttlSeconds
+  };
+}
+
 export function getDealCacheKey(provider: GameFeed["source"], filters: DealFilterState) {
   return [
     DEAL_CACHE_SCHEMA_VERSION,
@@ -43,54 +56,15 @@ export function getDealCacheKey(provider: GameFeed["source"], filters: DealFilte
 }
 
 export function getDealCache(key: string, now = Date.now()) {
-  const entry = dealCache.get(key);
+  const cached = getFreshCacheEntry(dealCache, key, now);
 
-  if (!entry) {
-    return null;
-  }
-
-  if (entry.expiresAt <= now) {
-    return null;
-  }
-
-  dealCache.delete(key);
-  dealCache.set(key, entry);
-
-  return {
-    source: entry.source,
-    games: entry.games,
-    warning: entry.warning,
-    nextOffset: entry.nextOffset,
-    hasMore: entry.hasMore,
-    tagOptions: entry.tagOptions,
-    ttlSeconds: Math.max(0, Math.ceil((entry.expiresAt - now) / 1000))
-  };
+  return cached ? toDealCachePayload(cached.entry, cached.ttlSeconds) : null;
 }
 
 export function getStaleDealCache(key: string, now = Date.now()) {
-  const entry = dealCache.get(key);
+  const cached = getStaleCacheEntry(dealCache, key, now);
 
-  if (!entry) {
-    return null;
-  }
-
-  if (entry.staleUntil <= now) {
-    dealCache.delete(key);
-    return null;
-  }
-
-  dealCache.delete(key);
-  dealCache.set(key, entry);
-
-  return {
-    source: entry.source,
-    games: entry.games,
-    warning: entry.warning,
-    nextOffset: entry.nextOffset,
-    hasMore: entry.hasMore,
-    tagOptions: entry.tagOptions,
-    ttlSeconds: Math.max(0, Math.ceil((entry.staleUntil - now) / 1000))
-  };
+  return cached ? toDealCachePayload(cached.entry, cached.ttlSeconds) : null;
 }
 
 export function setDealCache(key: string, payload: GameFeed, now = Date.now()) {
@@ -100,15 +74,7 @@ export function setDealCache(key: string, payload: GameFeed, now = Date.now()) {
     staleUntil: now + DEAL_CACHE_STALE_TTL_MS
   });
 
-  while (dealCache.size > DEAL_CACHE_MAX_ENTRIES) {
-    const oldestKey = dealCache.keys().next().value;
-
-    if (!oldestKey) {
-      break;
-    }
-
-    dealCache.delete(oldestKey);
-  }
+  trimOldestCacheEntries(dealCache, DEAL_CACHE_MAX_ENTRIES);
 }
 
 export function clearDealCacheForTests() {

@@ -18,3 +18,23 @@ export function formatCompactNumber(value: number) {
     maximumFractionDigits: 1
   }).format(value);
 }
+
+export function formatKoreanDateTime(value: string | null, fallback?: string) {
+  if (!value) {
+    return fallback ?? "";
+  }
+
+  const date = new Date(value);
+
+  if (!Number.isFinite(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
