@@ -123,7 +123,7 @@ npm run load:public
 | public cache | fresh TTL 5분, stale retention 6시간 | 외부 API 실패 시 마지막 검증 데이터 fallback |
 | public rate limit | 운영 120 requests / 60s, 로컬 240 requests / 60s | 공개 API와 외부 provider 보호 |
 | cache capacity | popular 40, deals 80, search 100 entries | process-local cache 메모리 상한 |
-| load smoke | 기본 10 iterations / concurrency 2 | 포트폴리오 검증용 반복 가능한 부하 경로 |
+| load smoke | 기본 10 iterations / concurrency 2 | 반복 가능한 공개 route 부하 확인 경로 |
 | code health | duplication 7.07% -> 2.90% | fallow 기반 중복 제거 후 유지보수성 개선 |
 
 추가 최적화로 카드 이미지 `loading="lazy"`, 무한 피드 `IntersectionObserver` 640px 선로드, 가격 snapshot의 product/observed time index, watchlist user/created index, API request log route/time index를 반영했습니다.
@@ -138,16 +138,16 @@ npm run load:public
   -> GitHub issue 단위 분할
   -> 구현 / 테스트 / 리뷰
   -> 정적 분석과 성능 지표 확인
-  -> handoff와 포트폴리오 evidence 문서화
+  -> handoff와 evidence 문서화
 ```
 
 | Skill / Plugin | 사용 이유 | 실제 성과 |
 | --- | --- | --- |
-| Harness plugin | product, data contract, frontend UX, QA, portfolio evidence 관점을 분리하기 위해 사용 | 프로젝트 전용 agent 5개와 skill 5개를 구성해 기능 개발 때마다 API 계약, 웹뷰 UX, 테스트, 문서 증거를 함께 점검 |
+| Harness plugin | product, data contract, frontend UX, QA, evidence 관점을 분리하기 위해 사용 | 프로젝트 전용 agent 5개와 skill 5개를 구성해 기능 개발 때마다 API 계약, 웹뷰 UX, 테스트, 문서 증거를 함께 점검 |
 | `to-issues` | 큰 roadmap과 parent issue를 한 번에 구현하지 않고 독립 실행 가능한 vertical slice로 쪼개기 위해 사용 | AI insight, scale readiness, analytics, bundle, CI/demo 작업을 #15-#25 GitHub issue로 분할하고 추적 |
 | `handoff` | 여러 날짜에 걸친 긴 개발에서 맥락 손실과 반복 판단을 줄이기 위해 사용 | `E:\memory\handoffs`에 issue 상태, 변경 파일, 검증 명령, 남은 리스크, secret 비공개 규칙을 계속 저장 |
 | `fallow` | 유지보수성을 감이 아니라 수치로 확인하기 위해 사용 | dead-code, unused export, duplicate clone, complexity hotspot을 측정하고 리팩터링 우선순위를 결정 |
-| `portfolio-evidence-review` | 구현 결과를 이력서/포트폴리오에서 설명 가능한 증거로 바꾸기 위해 사용 | bundle report, Vite component lab, CI, E2E smoke, demo guide, load smoke 문서로 연결 |
+| evidence review | 구현 결과를 설명 가능한 증거로 바꾸기 위해 사용 | bundle report, Vite component lab, CI, E2E smoke, demo guide, load smoke 문서로 연결 |
 | `analytics-experiment-guardrails` | 이벤트 이름과 payload가 코드/문서/테스트에서 어긋나지 않게 하기 위해 사용 | `experiment_exposed` 오기를 실제 이벤트명 `experiment_exposure`로 정리하고 analytics taxonomy를 확장 |
 | `game-data-contracts` | 외부 API, Supabase, cache, RLS, price snapshot 경계를 유지하기 위해 사용 | AI가 가격을 생성하지 못하도록 저장된 snapshot/review evidence만 사용하는 guardrail을 설정 |
 | `caveman`, `caveman-commit`, `caveman-review` | 긴 세션의 보고, 커밋 메시지, diff 위험 점검을 짧게 유지하기 위해 사용 | Conventional Commit 형식과 한국어 요약을 유지하고, 큰 변경 전후로 위험 지점을 빠르게 정리 |
@@ -162,16 +162,16 @@ Harness는 한 명의 AI가 모든 결정을 뭉뚱그려 처리하지 않도록
 | `game-data-integration-engineer` | ITAD API, Steam 가격, Supabase, RLS, cache key, price snapshot | API key client 노출 방지, cache key 누락 방지, stale 가격을 현재가처럼 보여주는 문제 차단 |
 | `game-webview-frontend-engineer` | 모바일 웹뷰, safe-area, 하단 탭, 외부 스토어 bridge UX | `?webview=1` 모드와 bridge fallback을 문서/테스트 대상으로 고정 |
 | `game-deal-qa-observability-engineer` | Vitest, Playwright, analytics, monitoring, regression | 기능 구현 후 `typecheck`, `lint`, `test`, `build`, E2E smoke를 검증 루틴으로 유지 |
-| `portfolio-systems-architect` | README, demo guide, bundle/load/CI evidence, 이력서 표현 | 기능 설명을 수치와 재현 가능한 명령으로 바꿔 포트폴리오 증거화 |
+| documentation architect | README, demo guide, bundle/load/CI evidence | 기능 설명을 수치와 재현 가능한 명령으로 바꿔 증거화 |
 
 agent와 같은 방식으로 프로젝트 전용 skill도 구성했습니다.
 
 | Harness skill | 사용한 상황 | 결과 |
 | --- | --- | --- |
-| `game-deal-harness-orchestrator` | 새 기능을 시작하거나 다음 issue 우선순위를 정할 때 | product, data, frontend, QA, portfolio 관점을 함께 체크 |
+| `game-deal-harness-orchestrator` | 새 기능을 시작하거나 다음 issue 우선순위를 정할 때 | product, data, frontend, QA, evidence 관점을 함께 체크 |
 | `game-data-contracts` | 검색/할인 API, price snapshot, AI insight, cache/RLS 변경 시 | AI가 가격을 만들어내지 못하도록 evidence-only guardrail 유지 |
 | `analytics-experiment-guardrails` | analytics event, A/B test, Web Vitals, monitoring 변경 시 | event name/payload/docs/tests 불일치 수정 |
-| `portfolio-evidence-review` | README, bundle report, demo guide, load test, CI 문서 작성 시 | “구현했다”를 “어떤 수치와 명령으로 검증했다”로 전환 |
+| evidence review | README, bundle report, demo guide, load test, CI 문서 작성 시 | “구현했다”를 “어떤 수치와 명령으로 검증했다”로 전환 |
 | `webview-ux-qa` | 모바일 viewport, safe-area, store bridge 검증 시 | 웹뷰 모드가 일반 웹 링크 fallback과 함께 동작하도록 점검 |
 
 Harness를 사용한 가장 큰 성과는 작업 누락 방지였습니다. 예를 들어 AI 인사이트 기능을 만들 때 단순 요약 UI만 구현하지 않고, `JOB_SECRET`이 필요한 job route, deterministic 후보 생성, evidence-only prompt, stale snapshot 표시 정책, UI empty state, API/컴포넌트 테스트까지 하나의 흐름으로 묶었습니다. 또한 analytics 작업에서는 문서에 잘못 적힌 `experiment_exposed`와 실제 코드 이벤트명 `experiment_exposure`의 불일치를 찾아 수정했습니다.
@@ -215,7 +215,7 @@ Browser / Webview
 
 ## 구현하면서 중요하게 본 점
 
-- 프론트엔드 포트폴리오 기준으로 화면, 사용자 흐름, 테스트 증거, 성능 수치를 함께 남겼습니다.
+- 프론트엔드 화면, 사용자 흐름, 테스트 증거, 성능 수치를 함께 남겼습니다.
 - 큰 전역 상태를 도입하지 않고 Server Components, Server Actions, URL state, 작은 client island 위주로 구성했습니다.
 - analytics, monitoring, AI, cache, rate limit은 핵심 UX가 실패하지 않도록 fail-open/no-op 경로를 뒀습니다.
 - 실제 가격 근거가 없을 때 mock 할인율을 진짜 할인처럼 보여주지 않도록 정책을 바꿨습니다.
