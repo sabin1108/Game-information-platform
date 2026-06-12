@@ -2,6 +2,8 @@
 
 Steam과 Epic Games 가격을 한 화면에서 비교하고, 관심 게임의 목표 가격/할인율 도달 여부를 추적하는 게임 할인 정보 플랫폼입니다. 단순 목록형 페이지가 아니라 검색, 할인 탐색, 관심 목록, 목표 조건 저장, 추천, AI 인사이트, 웹뷰 대응, 분석/모니터링까지 이어지는 제품 경험으로 구성했습니다.
 
+배포 사이트: https://www.gamesaleinfo.site/
+
 ## 화면 구성
 
 ### 홈 / 인기 게임 / AI 인사이트
@@ -49,8 +51,8 @@ Steam과 Epic Games 가격을 한 화면에서 비교하고, 관심 게임의 �
 | 추천 | 관심 목록 태그와 최근 검색어 기반 가중치 추천 | `src/lib/recommendations.ts` |
 | AI 인사이트 | job route, deterministic 후보 생성, evidence-only 요약 저장/노출 | `src/lib/jobs/ai-insights.ts`, `src/components/ai-insight-section.tsx` |
 | 웹뷰 대응 | `?webview=1`, safe-area, 하단 탭, 외부 스토어 bridge payload | `src/components/webview-mode.tsx`, `src/lib/webview-bridge.ts` |
-| 분석/A/B 테스트 | PostHog 이벤트 taxonomy, popular-card-density 실험, exposure/click/conversion 이벤트 | `src/lib/analytics/events.ts`, `src/lib/experiments.ts` |
-| 모니터링 | Sentry no-op 안전 처리, Web Vitals, API duration/cache/status header | `src/lib/monitoring`, `src/components/monitoring-bootstrap.tsx` |
+| 분석/A/B 테스트 | PostHog-compatible 이벤트 taxonomy, popular-card-density 실험, exposure/click/conversion 이벤트 | `src/lib/analytics/events.ts`, `src/lib/experiments.ts` |
+| 모니터링 | Sentry DSN 기반 no-op 안전 처리, Web Vitals, API duration/cache/status header | `src/lib/monitoring`, `src/components/monitoring-bootstrap.tsx` |
 
 ## 테스트와 검증 방식
 
@@ -105,7 +107,7 @@ npm run load:public
 - 기능 테스트는 단순 implementation detail이 아니라 사용자가 보는 버튼 이름, alert/status 문구, URL, 응답 JSON shape를 기준으로 작성했습니다.
 - 외부 API는 테스트에서 직접 과도 호출하지 않고 mock/cache 경로를 사용해 반복 가능한 결과를 만들었습니다.
 - secret 관련 테스트는 실제 값을 쓰지 않고, 응답 JSON이나 client bundle에 server-only key가 섞이지 않는지만 확인했습니다.
-- E2E는 비용이 큰 전체 suite와 빠른 smoke를 분리했습니다. CI/배포 확인에는 `npm run e2e:smoke`, 로컬 회귀 확인에는 필요 시 `npm run e2e`를 사용합니다.
+- E2E는 비용이 큰 전체 suite와 빠른 desktop smoke를 분리했습니다. CI/배포 확인에는 `npm run e2e:smoke`, 모바일 웹뷰까지 포함한 로컬 회귀 확인에는 필요 시 `npm run e2e`를 사용합니다.
 - 성능 검증은 `npm run analyze`의 bundle report와 `npm run load:public`의 p50/p95/max latency 기록 템플릿으로 남기도록 했습니다.
 
 ## 성능 및 최적화 근거
@@ -168,7 +170,7 @@ agent와 같은 방식으로 프로젝트 전용 skill도 구성했습니다.
 | --- | --- | --- |
 | `game-deal-harness-orchestrator` | 새 기능을 시작하거나 다음 issue 우선순위를 정할 때 | product, data, frontend, QA, portfolio 관점을 함께 체크 |
 | `game-data-contracts` | 검색/할인 API, price snapshot, AI insight, cache/RLS 변경 시 | AI가 가격을 만들어내지 못하도록 evidence-only guardrail 유지 |
-| `analytics-experiment-guardrails` | PostHog event, A/B test, Web Vitals, monitoring 변경 시 | event name/payload/docs/tests 불일치 수정 |
+| `analytics-experiment-guardrails` | analytics event, A/B test, Web Vitals, monitoring 변경 시 | event name/payload/docs/tests 불일치 수정 |
 | `portfolio-evidence-review` | README, bundle report, demo guide, load test, CI 문서 작성 시 | “구현했다”를 “어떤 수치와 명령으로 검증했다”로 전환 |
 | `webview-ux-qa` | 모바일 viewport, safe-area, store bridge 검증 시 | 웹뷰 모드가 일반 웹 링크 fallback과 함께 동작하도록 점검 |
 
@@ -196,7 +198,6 @@ Harness를 사용한 가장 큰 성과는 작업 누락 방지였습니다. 예�
 - secret, service role key, demo password, 실제 env 값은 handoff나 issue에 남기지 않았습니다.
 - AI 인사이트 기능은 저장된 price snapshot과 review evidence만 사용하게 해, AI가 가격/할인율을 지어내지 못하도록 제한했습니다.
 - 기능 구현 후에는 `typecheck`, `lint`, `test`, `build`, 필요한 경우 Playwright smoke와 load smoke를 실행해 결과를 남겼습니다.
-- 포트폴리오 문장도 “AI로 쉽게 만들었다”가 아니라 “AI skill로 작업을 구조화하고 검증 가능한 증거를 남겼다”는 방향으로 정리했습니다.
 
 ## 아키텍처 요약
 
@@ -222,7 +223,7 @@ Browser / Webview
 
 ## 운영 및 보안 주의점
 
-- `.env.local`, Supabase service role key, ITAD API key, PostHog/Sentry token, 실제 demo password는 문서나 커밋에 포함하지 않습니다.
+- `.env.local`, Supabase service role key, ITAD API key, analytics/monitoring token, 실제 demo password는 문서나 커밋에 포함하지 않습니다.
 - 현재 public cache와 rate limit은 process-local in-memory 방식입니다. Vercel/serverless multi-instance에서는 인스턴스별 cache/bucket으로 동작하므로 실제 트래픽이 커지면 Redis 또는 Vercel KV로 이전해야 합니다.
 - local load smoke는 기본적으로 `ITAD_ENABLE_LOCAL_DEV=false` 경로를 사용해 외부 API를 직접 과도 호출하지 않게 설계했습니다.
 - AI 인사이트는 저장된 price snapshot과 review evidence만 사용해야 하며, 가격이나 할인율을 생성해서는 안 됩니다.
@@ -235,14 +236,14 @@ npm install
 npm run dev
 ```
 
-기본 개발 서버는 `http://localhost:3000`입니다. 실제 Supabase/ITAD/PostHog/Sentry 연동은 `.env.example`의 변수 이름을 기준으로 로컬 또는 배포 환경에 별도 설정합니다.
+기본 개발 서버는 `http://localhost:3000`입니다. 실제 Supabase/ITAD/analytics/monitoring 연동은 `.env.example`의 변수 이름을 기준으로 로컬 또는 배포 환경에 별도 설정합니다.
 
 ## 기술 스택
 
 - Next.js App Router, React, TypeScript
 - Supabase Auth/Postgres
 - IsThereAnyDeal API, Steam public price enrichment
-- PostHog analytics/experiments
-- Sentry/Web Vitals/API monitoring
+- PostHog-compatible analytics/experiments
+- Sentry DSN, Web Vitals, API monitoring
 - Vitest, Testing Library, Playwright
 - Next bundle analyzer, Vite component lab
