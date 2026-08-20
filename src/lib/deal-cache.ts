@@ -5,8 +5,7 @@ import { getFreshCacheEntry, getStaleCacheEntry, trimOldestCacheEntries } from "
 const DEAL_CACHE_TTL_MS = 5 * 60 * 1000;
 const DEAL_CACHE_STALE_TTL_MS = 6 * 60 * 60 * 1000;
 const DEAL_CACHE_MAX_ENTRIES = 80;
-const DEAL_CACHE_SCHEMA_VERSION = "v10";
-
+const DEAL_CACHE_SCHEMA_VERSION = "v11";
 export type DealSort = "discount" | "price" | "reviews";
 export type DealCacheStatus = "hit" | "miss" | "stale";
 

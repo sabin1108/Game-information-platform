@@ -90,4 +90,65 @@ describe("ITAD search normalization", () => {
       })
     ]);
   });
+
+  it("drops zero-current deals and falls back to Steam header thumbnails", () => {
+    const game = normalizeItadGame(
+      {
+        id: "018d937f-free-weekend",
+        slug: "free-weekend-game",
+        title: "Free Weekend Game",
+        type: "game",
+        assets: {}
+      },
+      {
+        id: "018d937f-free-weekend",
+        deals: [
+          {
+            shop: {
+              id: 61,
+              name: "Steam"
+            },
+            price: {
+              amount: 0,
+              amountInt: 0,
+              currency: "USD"
+            },
+            regular: {
+              amount: 19.99,
+              amountInt: 1999,
+              currency: "USD"
+            },
+            cut: 100,
+            url: "https://store.steampowered.com/app/12345/"
+          },
+          {
+            shop: {
+              id: 35,
+              name: "Humble Store"
+            },
+            price: {
+              amount: 1.99,
+              amountInt: 199,
+              currency: "USD"
+            },
+            regular: {
+              amount: 19.99,
+              amountInt: 1999,
+              currency: "USD"
+            },
+            cut: 90,
+            url: "https://store.steampowered.com/app/12345/"
+          }
+        ]
+      }
+    );
+
+    expect(game.imageUrl).toBe("https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/12345/header.jpg");
+    expect(game.prices).toHaveLength(1);
+    expect(game.prices[0]).toMatchObject({
+      storeName: "Humble Store",
+      currentPriceCents: 199,
+      discountPercent: 90
+    });
+  });
 });

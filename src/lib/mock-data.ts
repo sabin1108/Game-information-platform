@@ -148,7 +148,7 @@ const baseGames: GameSummary[] = [
   game({
     title: "Alan Wake 2",
     slug: "alan-wake-2",
-    imageUrl: "https://cdn2.unrealengine.com/egs-alanwake2-remedyentertainment-s1-2560x1440-3f7f2d492f8e.jpg",
+    imageUrl: "https://cdn1.epicgames.com/offer/c4763f236d08423eb47b4c3008779c84/EGS_AlanWake2_RemedyEntertainment_S2_1200x1600-c7c8091ddac0f9669c8e5905bca88aaa",
     releaseDate: "2023-10-27",
     releaseStatus: "released",
     tags: ["Horror", "Narrative", "Action"],

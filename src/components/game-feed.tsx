@@ -23,6 +23,7 @@ type GameFeedProps = {
   experimentKey?: string;
   analyticsDistinctId?: string;
   isAuthenticated?: boolean;
+  enableLoadMore?: boolean;
 };
 
 export function GameFeed({
@@ -32,17 +33,18 @@ export function GameFeed({
   cardVariant,
   experimentKey,
   analyticsDistinctId,
-  isAuthenticated = false
+  isAuthenticated = false,
+  enableLoadMore = true
 }: GameFeedProps) {
   const [games, setGames] = useState(initialGames);
   const [offset, setOffset] = useState(initialGames.length);
-  const [hasMore, setHasMore] = useState(initialGames.length > 0);
+  const [hasMore, setHasMore] = useState(enableLoadMore && initialGames.length > 0);
   const [isLoading, setIsLoading] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const loadMore = useCallback(async () => {
-    if (isLoading || !hasMore) {
+    if (!enableLoadMore || isLoading || !hasMore) {
       return;
     }
 
@@ -80,7 +82,7 @@ export function GameFeed({
     } finally {
       setIsLoading(false);
     }
-  }, [hasMore, isLoading, offset, store, tag]);
+  }, [enableLoadMore, hasMore, isLoading, offset, store, tag]);
 
   useIntersectionLoader(sentinelRef, () => {
     void loadMore();
@@ -112,20 +114,22 @@ export function GameFeed({
         ))}
       </section>
       {warning ? <div className="notice" role="alert">{warning}</div> : null}
-      <div className="feed-sentinel" ref={sentinelRef}>
-        {isLoading ? (
-          <span className="match">
-            <LoaderCircle size={15} aria-hidden="true" />
-            불러오는 중
-          </span>
-        ) : hasMore ? (
-          <button className="button" onClick={loadMore} type="button">
-            더 보기
-          </button>
-        ) : (
-          <span className="tag">불러올 게임이 없습니다.</span>
-        )}
-      </div>
+      {enableLoadMore ? (
+        <div className="feed-sentinel" ref={sentinelRef}>
+          {isLoading ? (
+            <span className="match">
+              <LoaderCircle size={15} aria-hidden="true" />
+              불러오는 중
+            </span>
+          ) : hasMore ? (
+            <button className="button" onClick={loadMore} type="button">
+              더 보기
+            </button>
+          ) : (
+            <span className="tag">불러올 게임이 없습니다.</span>
+          )}
+        </div>
+      ) : null}
     </>
   );
 }

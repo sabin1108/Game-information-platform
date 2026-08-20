@@ -169,6 +169,14 @@ function getReviewSortScore(game: GameSummary) {
   return Math.log10(reviewCount + 1) * positiveRatio;
 }
 
+export function hasActiveDiscount(game: GameSummary) {
+  return game.prices.some((price) =>
+    price.currentPriceCents > 0 &&
+    price.regularPriceCents > price.currentPriceCents &&
+    price.discountPercent > 0
+  );
+}
+
 function applyDealFilters(games: GameSummary[], filters: DealFilterState) {
   const filtered = games
     .filter((game) => gameMatchesTag(game, filters))

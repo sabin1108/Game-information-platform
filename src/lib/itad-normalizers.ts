@@ -65,6 +65,10 @@ function getSteamAppIdFromUrl(url: string | undefined) {
   return match ? Number(match[1]) : undefined;
 }
 
+function getSteamHeaderImageUrl(appId: number | undefined) {
+  return appId ? `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appId}/header.jpg` : "";
+}
+
 function toStoreCode(storeName: string | undefined): StoreCode {
   const normalized = storeName?.toLowerCase() ?? "";
 
@@ -139,7 +143,7 @@ function selectStoreProducts(game: ItadGame, priceRow: ItadPriceRow | undefined)
   const historyLow = priceRow?.historyLow?.all;
   const products = (priceRow?.deals ?? [])
     .map((offer) => toStoreProduct(game, offer, historyLow))
-    .filter((product) => product.currentPriceCents > 0 || product.regularPriceCents > 0)
+    .filter((product) => product.currentPriceCents > 0)
     .sort((a, b) => {
       const priorityDiff = getStorePriority(a) - getStorePriority(b);
 
@@ -182,7 +186,7 @@ export function normalizeItadGame(game: ItadGame, priceRow?: ItadPriceRow): Game
     title: game.title,
     slug: game.slug ?? game.id,
     steamAppId,
-    imageUrl: getItadImageUrl(game.assets),
+    imageUrl: getItadImageUrl(game.assets) || getSteamHeaderImageUrl(steamAppId),
     releaseStatus: "unknown",
     tags: game.type ? [game.type] : ["Game"],
     steamReviewCount: game.count,

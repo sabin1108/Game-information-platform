@@ -5,22 +5,21 @@ import { GameFeed } from "@/components/game-feed";
 import { TopNav } from "@/components/top-nav";
 import { getPublicAiInsights } from "@/lib/ai-insights";
 import { getPopularCardExperiment } from "@/lib/experiments";
-import { getDealFeed, getPopularFeed } from "@/lib/game-feeds";
+import { getDealFeed, hasActiveDiscount } from "@/lib/game-feeds";
+import { mockGames } from "@/lib/mock-data";
 import { getNavAuthState } from "@/lib/nav-auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [popularFeed, dealFeed, insightFeed, popularCardExperiment, navState] = await Promise.all([
-    getPopularFeed(24),
+  const [dealFeed, insightFeed, popularCardExperiment, navState] = await Promise.all([
     getDealFeed({ country: "KR", limit: 80, minDiscount: 1 }),
     getPublicAiInsights(3),
     getPopularCardExperiment(),
     getNavAuthState()
   ]);
-  const discountedGames = dealFeed.games.filter((game) =>
-    game.prices.some((price) => price.discountPercent > 0)
-  );
+  const discountedGames = dealFeed.games.filter(hasActiveDiscount);
+  const featuredGames = mockGames.filter(hasActiveDiscount).slice(0, 24);
 
   return (
     <>
@@ -65,21 +64,22 @@ export default async function HomePage() {
           <div className="stat">
             <span>데이터 출처</span>
             <strong>
-              <Star size={18} aria-hidden="true" /> {popularFeed.source.toUpperCase()}
+              <Star size={18} aria-hidden="true" /> CURATED
             </strong>
           </div>
         </section>
 
-        {popularFeed.warning ? <div className="notice">{popularFeed.warning}</div> : null}
+        {dealFeed.warning ? <div className="notice">{dealFeed.warning}</div> : null}
 
         <AiInsightSection insights={insightFeed.data} warning={insightFeed.warning} />
 
         <GameFeed
-          initialGames={popularFeed.games}
+          initialGames={featuredGames}
           cardVariant={popularCardExperiment.variant}
           experimentKey={popularCardExperiment.experimentKey}
           analyticsDistinctId={popularCardExperiment.distinctId}
           isAuthenticated={navState.isAuthenticated}
+          enableLoadMore={false}
         />
       </main>
     </>

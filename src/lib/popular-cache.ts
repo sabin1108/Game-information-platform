@@ -4,8 +4,7 @@ import { getFreshCacheEntry, getStaleCacheEntry, trimOldestCacheEntries } from "
 const POPULAR_CACHE_TTL_MS = 5 * 60 * 1000;
 const POPULAR_CACHE_STALE_TTL_MS = 6 * 60 * 60 * 1000;
 const POPULAR_CACHE_MAX_ENTRIES = 40;
-const POPULAR_CACHE_SCHEMA_VERSION = "v1";
-
+const POPULAR_CACHE_SCHEMA_VERSION = "v2";
 export type PopularCacheStatus = "hit" | "miss" | "stale";
 
 type PopularCacheEntry = GameFeed & {
