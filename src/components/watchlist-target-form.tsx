@@ -1,5 +1,8 @@
+"use client";
+
 import React from "react";
-import { Save, Trash2 } from "lucide-react";
+import { useFormStatus } from "react-dom";
+import { Save, Trash2, LoaderCircle } from "lucide-react";
 import { removeWatchlistItemAction, updateWatchlistTargetAction } from "@/app/app/actions";
 import { formatPrice } from "@/lib/format";
 import { getTargetMatchState } from "@/lib/game-score";
@@ -51,13 +54,13 @@ export function WatchlistTargetForm({ item, disabled = false }: WatchlistTargetF
             disabled={disabled}
             min="0"
             name="targetPrice"
-            placeholder="35000"
+            placeholder="예: 35000"
             step="100"
             type="number"
           />
         </label>
         <label className="field">
-          <span>목표 할인율</span>
+          <span>목표 할인율 (%)</span>
           <input
             aria-label={`${item.game.title} 목표 할인율`}
             defaultValue={item.targetDiscountPercent ?? ""}
@@ -82,21 +85,18 @@ export function WatchlistTargetForm({ item, disabled = false }: WatchlistTargetF
         />
       </label>
 
-      <div className="form-actions">
-        <button className="button button--primary" disabled={disabled} type="submit">
-          <Save size={17} aria-hidden="true" />
-          목표 저장
-        </button>
-        <button
-          className="button button--danger"
-          disabled={disabled}
-          formAction={removeWatchlistItemAction}
-          type="submit"
-        >
-          <Trash2 size={17} aria-hidden="true" />
-          삭제
-        </button>
-      </div>
+      <TargetActions disabled={disabled} />
     </form>
   );
+}
+
+function TargetActions({ disabled }: { disabled: boolean }) {
+  const { pending } = useFormStatus();
+  return <div className="form-actions">
+    <button className="button button--primary" disabled={disabled || pending} type="submit">
+      {pending ? <LoaderCircle size={17} aria-hidden="true" /> : <Save size={17} aria-hidden="true" />}
+      {pending ? "처리 중…" : "목표 저장"}
+    </button>
+    <button className="button button--danger" disabled={disabled || pending} formAction={removeWatchlistItemAction} formNoValidate type="submit"><Trash2 size={17} aria-hidden="true" />삭제</button>
+  </div>;
 }

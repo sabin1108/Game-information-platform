@@ -57,7 +57,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
   return (
     <>
       <TopNav isAuthenticated />
-      <main className="container">
+      <main id="main-content" tabIndex={-1} className="container">
         <section className="section-header">
           <div>
             <h1>프로필</h1>

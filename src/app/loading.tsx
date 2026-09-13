@@ -1,0 +1,3 @@
+export default function Loading() {
+  return <main id="loading-content" className="container loading-page" aria-busy="true" tabIndex={-1}><p role="status">게임 정보를 불러오고 있어요…</p><div className="skeleton skeleton--title" aria-hidden="true" /><div className="game-grid" aria-hidden="true">{Array.from({ length: 6 }, (_, index) => <div className="game-card skeleton-card" key={index}><div className="skeleton skeleton--cover" /><div className="game-card__body"><div className="skeleton skeleton--line" /><div className="skeleton skeleton--line" /><div className="skeleton skeleton--line" /></div></div>)}</div></main>;
+}

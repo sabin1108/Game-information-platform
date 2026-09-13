@@ -1,3 +1,4 @@
+import { FeedNotice } from "@/components/feed-notice";
 import { Flame } from "lucide-react";
 import { DealFeed } from "@/components/deal-feed";
 import { TopNav } from "@/components/top-nav";
@@ -19,7 +20,7 @@ type DealsPageProps = {
 export default async function DealsPage({ searchParams }: DealsPageProps) {
   const params = await searchParams;
   const minDiscount = Number(params.minDiscount ?? "1");
-  const maxPrice = Number(params.maxPrice ?? "");
+  const maxPrice = params.maxPrice ? Number(params.maxPrice) : NaN;
   const [dealFeed, navState] = await Promise.all([
     getDealFeed({
       country: "KR",
@@ -38,23 +39,26 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
   return (
     <>
       <TopNav />
-      <main className="container">
+      <main id="main-content" className="container" tabIndex={-1}>
         <section className="section-header">
           <div>
             <h1>할인 게임 모아보기</h1>
-            <p>서버에서 할인 정보를 가져오고 캐시한 뒤 스토어, 할인율, 가격 조건으로 좁혀봅니다.</p>
+            <p>원하는 스토어와 예산을 정하고, 마음에 드는 할인을 찾아보세요.</p>
           </div>
           <span className="match">
             <Flame size={16} aria-hidden="true" />
-            {deals.length}개 · {source.toUpperCase()}
-            {dealCacheStatus ? ` · 캐시 ${dealCacheStatus.toUpperCase()}` : ""}
+            Steam · Epic · 그 외 스토어
+
           </span>
         </section>
 
-        {warning ? <div className="notice">{warning}</div> : null}
+        <FeedNotice source={source} stale={dealCacheStatus === "stale"} warning={warning} />
 
         {filters ? (
           <DealFeed
+            key={JSON.stringify(filters)}
+            initialNextOffset={dealFeed.nextOffset}
+            initialHasMore={dealFeed.hasMore}
             initialGames={deals}
             initialTagOptions={tagOptions ?? []}
             filters={filters}

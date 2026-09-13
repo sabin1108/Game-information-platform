@@ -14,7 +14,7 @@ export function AiInsightSection({ insights, warning }: AiInsightSectionProps) {
       <div className="section-header section-header--compact">
         <div>
           <h2 id="ai-insights-title">이번 주 할인 인사이트</h2>
-          <p>저장된 가격 snapshot과 리뷰 근거로 만든 요약입니다.</p>
+          <p>가격 변화와 플레이어 리뷰를 함께 살펴봤어요.</p>
         </div>
       </div>
 

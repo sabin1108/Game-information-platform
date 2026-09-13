@@ -204,7 +204,7 @@ describe("search API route", () => {
       provider: "itad",
       query: "portal",
       country: "US",
-      limit: 40
+      limit: 100
     });
 
     cache.clearSearchCacheForTests();

@@ -57,3 +57,19 @@ describe("GameCard", () => {
     expect(screen.getByText("BR")).toBeTruthy();
   });
 });
+
+
+describe("GameCard usable actions", () => {
+  it("never offers a dead store link when there are no offers", () => {
+    const { container } = render(<GameCard game={{ ...mockGames[0], prices: [] }} />);
+    expect(container.querySelector('a[href="#"]')).toBeNull();
+    expect(container.querySelector('a[href^="/login"]')).toBeTruthy();
+  });
+  it("labels a confirmed 100% promotion as free but leaves unknown zero prices undecided", () => {
+    const price = { ...mockGames[0].prices[0], currentPriceCents: 0, regularPriceCents: 1000, discountPercent: 100 };
+    const { rerender } = render(<GameCard game={{ ...mockGames[0], releaseStatus: "released", prices: [price] }} />);
+    expect(screen.getByText("무료")).toBeTruthy();
+    rerender(<GameCard game={{ ...mockGames[0], releaseStatus: "upcoming", prices: [price] }} />);
+    expect(screen.getByText("가격 미정")).toBeTruthy();
+  });
+});

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { enrichGameArtwork } from "@/lib/game-artwork";
 import { clampNumber, getErrorMessage, withTimeout } from "@/lib/async-utils";
 import {
   dealCacheConfig,
@@ -23,7 +24,7 @@ import {
   type PopularCacheStatus
 } from "@/lib/popular-cache";
 import { normalizeGameReleaseStatuses } from "@/lib/release-status";
-import { searchGames } from "@/lib/search";
+import { searchGames, type SearchFilters } from "@/lib/search";
 import { enrichSteamMetadata, refreshSteamPrices } from "@/lib/steam-prices";
 import {
   getSteamPopularTags,
@@ -318,7 +319,7 @@ export async function getPopularFeed(limit = 24, country = "KR"): Promise<GameFe
     const games = await withTimeout(getItadPopular(limit), 5000, "ITAD popular feed timed out.");
     const payload: GameFeed = {
       source: "itad",
-      games: normalizeGameReleaseStatuses(await enrichSteamMetadata(games, normalizedCountry))
+      games: await enrichGameArtwork(normalizeGameReleaseStatuses(await enrichSteamMetadata(games, normalizedCountry)))
     };
 
     setPopularCache(cacheKey, payload);
@@ -461,6 +462,9 @@ export async function getDealFeed(options: {
     }
   }
 
+  if (payload.source === "itad") {
+    payload.games = await enrichGameArtwork(payload.games);
+  }
   setDealCache(cacheKey, payload);
 
   return {
@@ -471,11 +475,8 @@ export async function getDealFeed(options: {
   };
 }
 
-export async function searchGameFeed(query: string, options: {
-  tag?: string;
-  store?: string;
-} = {}): Promise<GameFeed> {
-  const result = await searchGames(query, { limit: 40, tag: options.tag, store: options.store });
+export async function searchGameFeed(query: string, options: SearchFilters = {}): Promise<GameFeed> {
+  const result = await searchGames(query, { ...options, limit: options.limit ?? 40 });
 
   return {
     source: result.source,

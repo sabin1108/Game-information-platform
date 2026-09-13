@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { withApiMonitoring } from "@/lib/monitoring/api";
 import { applyPublicApiRateLimit } from "@/lib/rate-limit";
+import { normalizeSearchCriteria } from "@/lib/search-filters";
 import { searchGames } from "@/lib/search";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,8 @@ async function searchHandler(request: NextRequest) {
   const limit = Number(request.nextUrl.searchParams.get("limit") ?? "40");
   const tag = request.nextUrl.searchParams.get("tag") ?? undefined;
   const store = request.nextUrl.searchParams.get("store") ?? undefined;
-  const result = await searchGames(query, { country, limit, tag, store });
+  const criteria = normalizeSearchCriteria({ q: query, tag, store, maxPrice: request.nextUrl.searchParams.get("maxPrice"), discounted: request.nextUrl.searchParams.get("discounted"), sort: request.nextUrl.searchParams.get("sort") });
+  const result = await searchGames(criteria.q, { ...criteria, country, limit });
 
   return NextResponse.json(
     {
@@ -28,6 +30,12 @@ async function searchHandler(request: NextRequest) {
         tag: tag ?? "",
         store: store ?? ""
       },
+      criteria: result.criteria,
+      tagOptions: result.tagOptions,
+      candidateCount: result.candidateCount,
+      matchedCount: result.matchedCount,
+      metadataMissingCount: result.metadataMissingCount,
+      candidateLimit: result.candidateLimit,
       cache: result.cache,
       warning: result.warning,
       data: result.games

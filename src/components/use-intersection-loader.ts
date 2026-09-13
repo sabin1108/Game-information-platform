@@ -14,7 +14,7 @@ export function useIntersectionLoader(
   useEffect(() => {
     const target = targetRef.current;
 
-    if (!target) {
+    if (!target || typeof IntersectionObserver === "undefined") {
       return;
     }
 

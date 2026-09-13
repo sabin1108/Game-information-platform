@@ -151,6 +151,8 @@ export async function getItadDeals(options: {
   offset?: number;
   limit?: number;
   minDiscount?: number;
+  tags?: string[];
+  allPrices?: boolean;
 } = {}) {
   const limit = Math.min(ITAD_DEALS_MAX_LIMIT, Math.max(1, options.limit ?? 40));
   const data = await fetchItadJson<ItadDealsResponse>("/deals/v2", {
@@ -159,14 +161,20 @@ export async function getItadDeals(options: {
       limit,
       offset: options.offset ?? 0,
       sort: "-cut",
-      filter: typeof options.minDiscount === "number"
-        ? JSON.stringify({ cut: { min: options.minDiscount, max: null } })
+      filter: typeof options.minDiscount === "number" || options.tags?.length
+        ? JSON.stringify({
+            ...(typeof options.minDiscount === "number" ? { cut: { min: options.minDiscount, max: null } } : {}),
+            ...(options.tags?.length ? { tagsUnion: options.tags } : {})
+          })
         : undefined
     }
   });
 
+  const pricesByGame = options.allPrices
+    ? await getItadPrices((data.list ?? []).map(game => game.id), options.country ?? "KR")
+    : undefined;
   return {
-    games: (data.list ?? []).map((game) => normalizeItadGame(game, toDealPriceRow(game))),
+    games: (data.list ?? []).map((game) => normalizeItadGame(game, pricesByGame?.get(game.id) ?? toDealPriceRow(game))),
     nextOffset: data.nextOffset,
     hasMore: data.hasMore
   };
@@ -193,4 +201,8 @@ export async function getItadPopular(options: {
   );
 
   return data.map((game) => normalizeItadGame(game, pricesByGame.get(game.id)));
+}
+
+export async function getItadGameInfo(id: string, timeoutMs = 2500) {
+  return fetchItadJson<ItadGame & { appid?: number | null; tags?: string[] }>("/games/info/v2", { search: { id }, timeoutMs });
 }

@@ -21,13 +21,13 @@ export function AuthPageShell({
 }: AuthPageShellProps) {
   return (
     <>
-      <TopNav />
-      <main className="auth-shell">
+      <TopNav variant="auth" />
+      <main id="main-content" tabIndex={-1} className="auth-shell">
         <section className="auth-card">
           <h1>{title}</h1>
           <p>{description}</p>
           {!isSupabaseConfigured() ? (
-            <div className="notice">Supabase 설정이 없어 데모 대시보드로 이동합니다.</div>
+            <div className="notice">체험 모드입니다. 로그인하면 예시 관심 목록을 둘러볼 수 있어요.</div>
           ) : null}
           {error ? (
             <div className="notice" role="alert">
@@ -40,7 +40,7 @@ export function AuthPageShell({
             </div>
           ) : null}
           {children}
-          <p>{footer}</p>
+          <div className="auth-card__switch">{footer}</div>
         </section>
       </main>
     </>

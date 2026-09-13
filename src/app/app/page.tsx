@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { BellRing, Database, ShieldCheck, TrendingDown } from "lucide-react";
+import { GameCardWatchlistAction } from "@/components/game-card-watchlist-action";
 import { GameCard } from "@/components/game-card";
 import { TopNav } from "@/components/top-nav";
 import { WatchlistTargetForm } from "@/components/watchlist-target-form";
@@ -91,7 +92,7 @@ export default async function AppDashboardPage({ searchParams }: AppDashboardPag
   return (
     <>
       <TopNav isAuthenticated={session.isAuthenticated} />
-      <main className="container">
+      <main id="main-content" tabIndex={-1} className="container">
         <section className="section-header">
           <div>
             <h1>관심 게임</h1>
@@ -213,7 +214,7 @@ export default async function AppDashboardPage({ searchParams }: AppDashboardPag
             </section>
             <section className="game-grid" aria-label="추천 게임">
               {recommendations.map((game) => (
-                <GameCard game={game} key={game.id} />
+                <GameCard game={game} key={game.id} action={session.demoMode ? <a className="button" href="/search">다른 게임 찾기</a> : <GameCardWatchlistAction game={game} isAuthenticated={session.isAuthenticated} loginPath="/login?next=/app" />} />
               ))}
             </section>
           </>

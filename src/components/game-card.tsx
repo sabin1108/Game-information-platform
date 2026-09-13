@@ -34,7 +34,7 @@ function formatDealEndsAt(value: string) {
 
 function getReviewBadgeLabel(game: GameSummary, isUpcoming: boolean) {
   if (game.steamReviewCount && game.steamPositiveRatio) {
-    return `${formatCompactNumber(game.steamReviewCount)} / ${game.steamPositiveRatio}%`;
+    return `긍정 ${game.steamPositiveRatio}% · 리뷰 ${formatCompactNumber(game.steamReviewCount)}`;
   }
 
   if (game.steamReviewCount) {
@@ -59,7 +59,7 @@ function GameCardImage({ game, compactMeta }: Pick<GameCardProps, "game" | "comp
     <div className="game-card__image">
       {hasImage ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={imageUrl} alt="" loading="lazy" onError={() => setFailedImageUrl(imageUrl)} />
+        <img src={imageUrl} alt="" loading="lazy" decoding="async" width={460} height={259} onError={() => setFailedImageUrl(imageUrl)} />
       ) : (
         <div className="game-card__image-fallback" aria-hidden="true">
           {game.title.slice(0, 2).toUpperCase()}
@@ -125,6 +125,7 @@ function StorePriceLink({ game, price, index, analytics }: {
   return (
     <StoreBridgeLink
       className="store-price"
+      title={`${game.title} · ${price.storeName}에서 가격 확인`}
       key={`${game.id}-${price.store}-${price.storeName}-${price.url}-${index}`}
       payload={{
         gameId: game.id,
@@ -142,7 +143,7 @@ function StorePriceLink({ game, price, index, analytics }: {
       <span className="store-price__value">
         <strong>
           {price.currentPriceCents === 0
-            ? "가격 미정"
+            ? (game.releaseStatus === "released" && price.discountPercent === 100 && price.regularPriceCents > 0 ? "무료" : "가격 미정")
             : formatPrice(price.currentPriceCents, price.currency)}
         </strong>
         {price.discountPercent > 0 ? (
@@ -162,10 +163,10 @@ function GameCardAction({ action, actionLabel }: Pick<GameCardProps, "action" | 
   return (
     <div className="game-card__action">
       {action ?? (
-        <button className="button button--primary" type="button">
+        <a className="button button--primary" href="/login?next=/app">
           <BellPlus size={17} aria-hidden="true" />
           {actionLabel}
-        </button>
+        </a>
       )}
     </div>
   );
@@ -175,17 +176,19 @@ function OpenStoreButton({ game, analytics }: {
   game: GameSummary;
   analytics: GameCardAnalytics;
 }) {
-  const bestPrice = getBestPrice(game);
+  const bestPrice = getBestPrice(game) ?? game.prices.find((price) => /^https?:\/\//.test(price.url));
+  if (!bestPrice || !/^https?:\/\//.test(bestPrice.url)) return <span className="store-unavailable">판매 정보를 준비하고 있어요</span>;
 
   return (
     <StoreBridgeLink
       className="button"
+      title={`${game.title} · ${bestPrice.storeName}에서 보기`}
       payload={{
         gameId: game.id,
         gameTitle: game.title,
         store: bestPrice?.store ?? "itad",
         storeName: bestPrice?.storeName ?? "Store",
-        url: bestPrice?.url ?? "#",
+        url: bestPrice.url,
         source: "game-card",
         experimentKey: analytics.experimentKey,
         variant: analytics.cardVariant,

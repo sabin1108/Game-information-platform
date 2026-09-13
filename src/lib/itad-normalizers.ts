@@ -55,8 +55,9 @@ export function getItadGameUrl(game: Pick<ItadGame, "slug" | "id">) {
   return game.slug ? `${ITAD_WEB_URL}/game/${game.slug}/` : `${ITAD_WEB_URL}/game/${game.id}/`;
 }
 
-function getItadImageUrl(assets: ItadAssetMap | undefined) {
-  return assets?.banner600 ?? assets?.banner400 ?? assets?.banner300 ?? assets?.boxart ?? "";
+export function getItadImageUrl(assets: ItadAssetMap | undefined) {
+  return [assets?.banner600, assets?.banner400, assets?.banner300, assets?.boxart, assets?.banner145]
+    .find((url) => Boolean(url?.trim()))?.trim() ?? "";
 }
 
 function getSteamAppIdFromUrl(url: string | undefined) {
@@ -65,7 +66,7 @@ function getSteamAppIdFromUrl(url: string | undefined) {
   return match ? Number(match[1]) : undefined;
 }
 
-function getSteamHeaderImageUrl(appId: number | undefined) {
+export function getSteamHeaderImageUrl(appId: number | undefined) {
   return appId ? `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appId}/header.jpg` : "";
 }
 
@@ -177,7 +178,7 @@ function selectStoreProducts(game: ItadGame, priceRow: ItadPriceRow | undefined)
 
 export function normalizeItadGame(game: ItadGame, priceRow?: ItadPriceRow): GameSummary {
   const prices = selectStoreProducts(game, priceRow);
-  const steamAppId = prices
+  const steamAppId = (priceRow?.deals ?? prices)
     .map((price) => getSteamAppIdFromUrl(price.url))
     .find((appId): appId is number => typeof appId === "number" && Number.isFinite(appId));
 

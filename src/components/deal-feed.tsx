@@ -1,14 +1,16 @@
 "use client";
 
 import { LoaderCircle } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GameCard } from "@/components/game-card";
 import { GameCardWatchlistAction } from "@/components/game-card-watchlist-action";
 import { useIntersectionLoader } from "@/components/use-intersection-loader";
 import type { DealFilterState } from "@/lib/deal-cache";
+import type { PopularCardVariant } from "@/lib/analytics/events";
 import type { GameSummary } from "@/types/game";
 
 type DealsResponse = {
+  source?: "itad" | "mock";
   data: GameSummary[];
   nextOffset?: number;
   hasMore?: boolean;
@@ -21,6 +23,12 @@ type DealFeedProps = {
   initialTagOptions: string[];
   filters: DealFilterState;
   isAuthenticated: boolean;
+  showFilters?: boolean;
+  cardVariant?: PopularCardVariant;
+  experimentKey?: string;
+  analyticsDistinctId?: string;
+  initialNextOffset?: number;
+  initialHasMore?: boolean;
 };
 
 function mergeUniqueGames(current: GameSummary[], next: GameSummary[]) {
@@ -43,15 +51,24 @@ export function DealFeed({
   initialGames,
   initialTagOptions,
   filters,
-  isAuthenticated
+  isAuthenticated,
+  showFilters = true,
+  cardVariant,
+  experimentKey,
+  analyticsDistinctId,
+  initialNextOffset,
+  initialHasMore
 }: DealFeedProps) {
   const [games, setGames] = useState(initialGames);
   const [tagOptions, setTagOptions] = useState(initialTagOptions);
-  const [nextOffset, setNextOffset] = useState(filters.offset + initialGames.length);
-  const [hasMore, setHasMore] = useState(initialGames.length >= filters.limit);
+  const [nextOffset, setNextOffset] = useState(initialNextOffset ?? filters.offset + initialGames.length);
+  const [hasMore, setHasMore] = useState(initialHasMore ?? initialGames.length >= filters.limit);
   const [isLoading, setIsLoading] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
-  const requestCursor = useRef(0);
+  const [failed, setFailed] = useState(false);
+  const inFlight = useRef(false);
+  const controller = useRef<AbortController | null>(null);
+  useEffect(() => () => controller.current?.abort(), []);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const selectedTag = filters.tag ?? "";
 
@@ -79,45 +96,47 @@ export function DealFeed({
   }, [filters]);
 
   const loadMore = useCallback(async () => {
-    if (isLoading || !hasMore) {
+    if (inFlight.current || !hasMore) {
       return;
     }
 
+    inFlight.current = true;
     setIsLoading(true);
-    const requestId = requestCursor.current + 1;
-    requestCursor.current = requestId;
+    setFailed(false);
+    setWarning(null);
+    controller.current = new AbortController();
 
     try {
       const params = new URLSearchParams(queryBase);
       params.set("offset", String(nextOffset));
 
-      const response = await fetch(`/api/deals?${params.toString()}`, { cache: "no-store" });
+      const response = await fetch(`/api/deals?${params.toString()}`, { cache: "no-store", signal: controller.current.signal });
+      if (!response.ok) throw new Error("request failed");
       const payload = (await response.json()) as DealsResponse;
-
-      if (requestCursor.current !== requestId) {
-        return;
-      }
+      if (!Array.isArray(payload.data)) throw new Error("invalid response");
 
       setGames((current) => mergeUniqueGames(current, payload.data ?? []));
       setTagOptions((current) => mergeTagOptions(current, payload.tagOptions ?? []));
       setNextOffset(payload.nextOffset ?? nextOffset + (payload.data?.length ?? 0));
-      setHasMore(Boolean(payload.hasMore && payload.data?.length));
-      setWarning(payload.warning ?? null);
+      setHasMore(Boolean(payload.hasMore && (payload.nextOffset ?? nextOffset + payload.data.length) > nextOffset));
+      setWarning(payload.source === "mock" ? "추가 목록에는 예시 게임이 포함되어 있어요. 실제 판매가는 스토어에서 확인해 주세요." : payload.warning ? "일부 가격을 갱신하지 못했습니다. 구매 전 스토어 가격을 확인해 주세요." : null);
     } catch (error) {
-      setWarning(error instanceof Error ? error.message : "할인 목록을 불러오지 못했습니다.");
-      setHasMore(false);
+      if (error instanceof Error && error.name === "AbortError") return;
+      setWarning("할인 목록을 불러오지 못했습니다. 연결을 확인하고 다시 시도해 주세요.");
+      setFailed(true);
     } finally {
+      inFlight.current = false;
       setIsLoading(false);
     }
-  }, [hasMore, isLoading, nextOffset, queryBase]);
+  }, [hasMore, nextOffset, queryBase]);
 
   useIntersectionLoader(sentinelRef, () => {
-    void loadMore();
+    if (!failed) void loadMore();
   });
 
   return (
     <>
-      <form className="deal-filters" action="/deals">
+      {showFilters ? <form className="deal-filters" action="/deals" aria-label="할인 필터">
         <label className="field">
           <span>스토어</span>
           <select name="store" defaultValue={filters.store ?? "all"} aria-label="스토어 필터">
@@ -145,7 +164,7 @@ export function DealFeed({
           </datalist>
         </label>
         <label className="field">
-          <span>최소 할인율</span>
+          <span>최소 할인율 (%)</span>
           <input
             aria-label="최소 할인율"
             min="0"
@@ -156,12 +175,12 @@ export function DealFeed({
           />
         </label>
         <label className="field">
-          <span>최대 가격</span>
+          <span>최대 가격 (원)</span>
           <input
             aria-label="최대 가격"
             min="0"
             name="maxPrice"
-            placeholder="30000"
+            placeholder="제한 없음"
             type="number"
             defaultValue={filters.maxPriceCents ? Math.floor(filters.maxPriceCents / 100) : ""}
           />
@@ -174,24 +193,30 @@ export function DealFeed({
             <option value="price">낮은 가격 순</option>
           </select>
         </label>
-        <button className="button button--primary" type="submit">
-          필터 적용
-        </button>
-      </form>
+        <div className="form-actions filter-actions">
+          <button className="button button--primary" type="submit">필터 적용</button>
+          <a className="button button--ghost" href="/deals">초기화</a>
+        </div>
+      </form> : null}
 
-      {warning ? <div className="notice">{warning}</div> : null}
+      {warning ? <div className="notice" role="alert">{warning}</div> : null}
 
-      <section className="game-grid" aria-label="할인 게임">
+      <p className="result-count" role="status">{games.length}개 게임을 확인하고 있어요</p>
+      {!games.length && !hasMore ? <div className="empty-state empty-state--full"><h2>조건에 맞는 할인 게임이 없어요</h2><p>할인율이나 가격 조건을 넓혀 다시 찾아보세요.</p><a className="button" href="/deals">필터 초기화</a></div> : null}
+      <section className={cardVariant === "variant_a" ? "game-grid game-grid--dense" : "game-grid"} data-experiment-key={experimentKey} data-experiment-variant={cardVariant} aria-label="할인 게임" aria-busy={isLoading}>
         {games.map((game) => (
           <GameCard
             key={game.id}
             game={game}
             compactMeta
+            cardVariant={cardVariant}
+            experimentKey={experimentKey}
+            analyticsDistinctId={analyticsDistinctId}
             action={
               <GameCardWatchlistAction
                 game={game}
                 isAuthenticated={isAuthenticated}
-                loginPath="/login?next=/deals"
+                loginPath={`/login?next=${encodeURIComponent(`/deals?${queryBase.toString()}`)}`}
               />
             }
           />
@@ -200,14 +225,14 @@ export function DealFeed({
 
       <div className="feed-sentinel" ref={sentinelRef}>
         {isLoading ? (
-          <span className="match">
+          <span className="match" role="status">
             <LoaderCircle size={15} aria-hidden="true" />
             불러오는 중
           </span>
         ) : hasMore ? (
-          <span className="tag">스크롤하면 더 불러옵니다.</span>
+          <button className="button" onClick={loadMore} type="button">{failed ? "다시 시도" : "더 보기"}</button>
         ) : (
-          <span className="tag">불러올 할인 게임이 없습니다.</span>
+          <span className="tag">할인 게임을 모두 확인했어요.</span>
         )}
       </div>
     </>
